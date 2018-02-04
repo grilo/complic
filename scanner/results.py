@@ -24,9 +24,8 @@ class Aggregator(object):
                 if result.identifier not in all_results.keys():
                     all_results[result.identifier] = result
                 else:
-                    print result.path
                     for lic in result.licenses:
-                        logging.info("Merging license (%s) onto: %s", lic, result.identifier)
+                        logging.debug("Merging license (%s) onto: %s", lic, result.identifier)
                         all_results[result.identifier].licenses.add(lic)
 
         for path in all_results.keys():
@@ -40,7 +39,7 @@ class Aggregator(object):
                 elif path == values.path:
                     merged_results[identifier] = values
                     for lic in all_results[path].licenses:
-                        logging.info("Merging license (%s) onto: %s", lic, result.identifier)
+                        logging.debug("Merging license (%s) onto: %s", lic, result.identifier)
                         merged_results[result.identifier].licenses.add(lic)
 
         return merged_results

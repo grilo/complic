@@ -37,7 +37,7 @@ class SPDX(object):
     def __init__(self, spdx_url='https://spdx.org/licenses', cache_dir=None):
         self.spdx_url = spdx_url
         if cache_dir is None:
-            cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()), '.licscan')
+            cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()), '.complic')
         self.cache_dir = cache_dir
         self.cache_ttl = 15811200  # Seconds
         self._licenses = {}

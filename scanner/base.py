@@ -19,10 +19,14 @@ class Scanner(object):
         pass
 
     def scan(self, filelist):
+        logging.info("Scanning (%i) files with: %s", len(filelist), self.__module__)
+        results = []
         for f in filelist:
-            for lic, handler in self.handlers.items():
-                if lic.match(f):
-                    yield handler(f)
+            for regex, handler in self.handlers.items():
+                if regex.match(f):
+                    for result in handler(f):
+                        results.append(result)
+        return results
 
 
 class Result(object):
@@ -50,5 +54,4 @@ class Result(object):
             print self.path
         if not self.licenses:
             return 'Unknown'
-        print self.licenses
         return ','.join(self.licenses)
