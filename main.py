@@ -15,10 +15,11 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s::%(levelname)s::%(message)s')
     logging.getLogger().setLevel(getattr(logging, 'INFO'))
 
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG)
 
     #directory = '/home/grilo/projects/sourcejenkins/electron-quick-start/node_modules'
-    directory = '/home/grilo/projects/sourcejenkins/hola'
+    #directory = '/home/grilo/projects/sourcejenkins/hola'
+    directory = '/home/grilo/projects/sourcejenkins/jenkins'
 
     matcher = legal.text.Matcher(legal.registry.SPDX().licenses)
 

@@ -33,6 +33,7 @@ class Result(object):
 
     def __init__(self, path):
         self.path = path
+        self.technology = None
         self.licenses = set()
         self._id = None
 
