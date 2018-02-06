@@ -34,7 +34,6 @@ class Result(object):
     def __init__(self, path):
         self.path = path
         self.licenses = set()
-        self.text = ''
         self._id = None
 
     @property
@@ -46,6 +45,18 @@ class Result(object):
     @identifier.setter
     def identifier(self, value):
         self._id = value
+
+    def merge(self, result):
+        basis = None
+        if self.identifier.startswith('/'):
+            basis = Result(result.path)
+            basis.identifier = result.identifier
+        else:
+            basis = Result(self.path)
+            basis.identifier = self.identifier
+
+        basis.licenses = result.licenses.union(self.licenses)
+        return basis
 
     def __repr__(self):
         try:

@@ -11,6 +11,10 @@ class Matcher(object):
 
     @staticmethod
     def compare(corpus, string):
+        # If string == "Netbeans CDDL/GPL" we get weird results
+        string = string.replace('/', '')
+        string = string.replace('CDDL', 'CDDL-1.0')
+
         results = corpus.similarities(string.split())
         #return sorted(results, key=lambda x: x[1])[-1][0]
         #print results

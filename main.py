@@ -29,4 +29,4 @@ if __name__ == '__main__':
     #import pprint
     #pprint.pprint(aggregator.report)
     for k, v in aggregator.report.items():
-        print k, v
+        print k, v, v.path

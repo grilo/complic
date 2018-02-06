@@ -14,32 +14,19 @@ class Aggregator(object):
 
     @property
     def report(self):
-        all_results = {}
-        merged_results = {}
-
+        results = {}
         for s in self.scanners:
             for result in s.scan(self.filelist):
-                if result is None:
-                    continue
-                if result.identifier not in all_results.keys():
-                    all_results[result.identifier] = result
-                else:
-                    for lic in result.licenses:
-                        logging.debug("Merging license (%s) onto: %s", lic, result.identifier)
-                        all_results[result.identifier].licenses.add(lic)
 
-        for path in all_results.keys():
-            if not path.startswith('/'):
-                merged_results[path] = all_results[path]
-                continue
+                # Merge results
+                if result.path in results:
+                    p = result.path
+                    result = results[p].merge(result)
+                    # Don't keep paths if we can avoid it
+                    del results[p]
+                elif result.identifier in results:
+                    result = results[result.identifier].merge(result)
 
-            for identifier, values in all_results.items():
-                if path == identifier:
-                    continue
-                elif path == values.path:
-                    merged_results[identifier] = values
-                    for lic in all_results[path].licenses:
-                        logging.debug("Merging license (%s) onto: %s", lic, result.identifier)
-                        merged_results[result.identifier].licenses.add(lic)
+                results[result.identifier] = result
 
-        return merged_results
+        return results
