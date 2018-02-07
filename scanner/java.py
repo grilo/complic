@@ -19,26 +19,29 @@ class Scanner(scanner.base.Scanner):
 
     def handle_pom(self, file_path):
         logging.debug("Matched pom handler: %s", file_path)
-        command = "mvn org.codehaus.mojo:license-maven-plugin:1.13"
-        command += ":add-third-party -q -B -f %s" % (file_path)
-        try:
-            subprocess.check_call(shlex.split(command))
-        except subprocess.CalledProcessError as e:
-            logging.error("Something went wrong when running: %s", command)
-            return []
 
         thirdparty = os.path.join(os.path.dirname(file_path),
                                   'target',
                                   'generated-sources',
                                   'license',
                                   'THIRD-PARTY.txt')
+
+        if not os.path.isfile(thirdparty):
+            command = "mvn org.codehaus.mojo:license-maven-plugin:1.13"
+            command += ":add-third-party -q -U -B -f %s" % (file_path)
+            try:
+                logging.info("Running license-mvn-plugin on: %s", file_path)
+                subprocess.check_call(shlex.split(command))
+            except subprocess.CalledProcessError as e:
+                logging.error("Something went wrong when running: %s", command)
+                return []
+
         return self.parse_thirdparty(thirdparty)
 
     def parse_thirdparty(self, thirdparty):
-        logging.debug("Matched THIRDPARTY.txt")
         regex = re.compile(r'\s(\(.*\)) (\w+.*) (\(.*\))')
         coords_url = re.compile(r'\((.*) - (http.*)\)')
-        results = []
+        dependencies = []
         for line in open(thirdparty, 'r').read().splitlines():
             if not line:
                 continue
@@ -52,11 +55,11 @@ class Scanner(scanner.base.Scanner):
             coords = coords.replace('(', '')
             url = url.replace(')', '')
 
-            result = scanner.base.Result(thirdparty)
-            result.identifier = coords
-            result.licenses.add(self.license_matcher.name(license))
-            result.technology = 'java'
+            dependency = scanner.base.Dependency(thirdparty)
+            dependency.identifier = coords
+            dependency.licenses.add(self.license_matcher.name(license))
 
-            results.append(result)
+            dependencies.append(dependency)
 
-        return results
+        logging.info("Collected (%i) dependencies.", len(dependencies))
+        return dependencies 

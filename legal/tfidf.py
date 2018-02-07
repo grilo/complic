@@ -10,28 +10,26 @@ import thirdparty.tfidf
 class Matcher(object):
 
     @staticmethod
-    def compare(corpus, string):
-        # If string == "Netbeans CDDL/GPL" we get weird results
-        string = string.replace('/', '')
-        string = string.replace('CDDL', 'CDDL-1.0')
-
+    def compare(corpus, string, threshold=0.005):
         results = corpus.similarities(string.split())
-        #return sorted(results, key=lambda x: x[1])[-1][0]
-        #print results
+
+        # Remove exponential notation
         for r in results:
             if 'e' not in str(r[1]):
                 continue
             idx = str(r[1]).index('e')
             r[1] = float(str(r[1])[:idx])
+
         # Discard results which are not similar enough
-        results = [r for r in results if r[1] >= 0.005]
+        results = [r for r in results if r[1] >= threshold]
+
         # Discard results which are too similar
         # Often small licenses contain very generic text
         # with multiple matches in the same license file
         # causing them to have huge scores.
         results = [r for r in results if r[1] <= 1.0]
         if not results:
-            return ''
+            return '<unknown>'
         return sorted(results, key=lambda x: x[1])[-1][0]
 
     def __init__(self, registry):
@@ -51,6 +49,7 @@ class Matcher(object):
                 self.tfidf_url.add_document(k, url.split('/'))
 
         # Build name + spdx corpus (many projects use either)
+        # Note, this may return really bad results
         self.tfidf_name = thirdparty.tfidf.TfIdf()
         for k, v in self.registry.items():
             self.tfidf_name.add_document(k, v['name'].split())

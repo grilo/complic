@@ -20,20 +20,21 @@ class Scanner(object):
 
     def scan(self, filelist):
         logging.info("Scanning (%i) files with: %s", len(filelist), self.__module__)
-        results = []
+        dependencies = []
         for f in filelist:
             for regex, handler in self.handlers.items():
                 if regex.match(f):
-                    for result in handler(f):
-                        results.append(result)
-        return results
+                    for dependency in handler(f):
+                        dependency.scanner = self.__class__.__module__
+                        dependencies.append(dependency)
+        return dependencies
 
 
-class Result(object):
+class Dependency(object):
 
     def __init__(self, path):
         self.path = path
-        self.technology = None
+        self.scanner = None
         self.licenses = set()
         self._id = None
 
@@ -47,16 +48,18 @@ class Result(object):
     def identifier(self, value):
         self._id = value
 
-    def merge(self, result):
+    def merge(self, dependency):
         basis = None
         if self.identifier.startswith('/'):
-            basis = Result(result.path)
-            basis.identifier = result.identifier
+            basis = Dependency(dependency.path)
+            basis.identifier = dependency.identifier
+            basis.scanner = dependency.scanner
         else:
-            basis = Result(self.path)
+            basis = Dependency(self.path)
             basis.identifier = self.identifier
+            basis.scanner = self.scanner
 
-        basis.licenses = result.licenses.union(self.licenses)
+        basis.licenses = dependency.licenses.union(self.licenses)
         return basis
 
     def __repr__(self):

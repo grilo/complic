@@ -12,7 +12,7 @@ import scanner.exceptions
 class Scanner(scanner.base.Scanner):
 
     @staticmethod
-    def get_licenses(pkgjson)
+    def get_licenses(pkgjson):
         lics = []
         # Normalize the naming if required
         if 'licenses' in pkgjson.keys():
@@ -41,18 +41,17 @@ class Scanner(scanner.base.Scanner):
 
         pkgjson = json.loads(open(file_path, 'r').read())
 
-        name = pkgjson.get('name')
-        version = pkgjson.get('version')
+        name = pkgjson.get('name', '<none>')
+        version = pkgjson.get('version', '<none>')
 
-        result = scanner.base.Result(file_path)
-        result.technology = 'js'
-        result.identifier = ':'.join([name, version])
+        dependency = scanner.base.Dependency(file_path)
+        dependency.identifier = ':'.join([name, version])
 
         # Normalize the naming if required
         if 'licenses' in pkgjson.keys():
             pkgjson['license'] = pkgjson['licenses']
 
         for lic in Scanner.get_licenses(pkgjson):
-            result.licenses.add(self.license_matcher.name(lic)
+            dependency.licenses.add(self.license_matcher.name(lic))
 
-        return [result]
+        return [dependency]
