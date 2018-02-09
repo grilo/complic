@@ -80,6 +80,9 @@ class Scanner(scanner.base.Scanner):
         os.chdir(old_dir)
 
     def __deptree(self, pkgname, dependencies):
+
+        pkgname = pkgname.replace('-', '_')
+
         if pkgname in dependencies:
             return {}
 

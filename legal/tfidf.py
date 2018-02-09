@@ -29,7 +29,7 @@ class Matcher(object):
         # causing them to have huge scores.
         results = [r for r in results if r[1] <= 1.0]
         if not results:
-            return '<unknown>'
+            return 'UNKNOWN'
         return sorted(results, key=lambda x: x[1])[-1][0]
 
     def __init__(self, registry):

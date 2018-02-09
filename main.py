@@ -21,14 +21,15 @@ if __name__ == '__main__':
     #directory = '/home/grilo/projects/sourcejenkins/hola'
     #directory = '/home/grilo/projects/sourcejenkins/jenkins'
     #directory = '/home/grilo/projects/sourcejenkins/python/pipreqs'
-    directory = '/home/grilo/projects/sourcejenkins/python/huxley'
+    #directory = '/home/grilo/projects/sourcejenkins/python/huxley'
+    directory = '/home/grilo/projects/sourcejenkins'
 
 
     matcher = legal.tfidf.Matcher(legal.registry.SPDX().licenses)
 
     scanners = [
-        #scanner.java.Scanner(matcher),
-        #scanner.js.Scanner(matcher),
+        scanner.java.Scanner(matcher),
+        scanner.js.Scanner(matcher),
         scanner.python.Scanner(matcher),
     ]
 
@@ -47,3 +48,6 @@ if __name__ == '__main__':
 
     for k, v in report.items():
         print v.scanner, k, ','.join(v.licenses)
+
+    import pprint
+    pprint.pprint(report)
