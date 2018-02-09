@@ -25,7 +25,7 @@ class Scanner(object):
             for regex, handler in self.handlers.items():
                 if regex.match(f):
                     for dependency in handler(f):
-                        dependency.scanner = self.__class__.__module__
+                        dependency.scanner = self.__class__.__module__.split('.')[-1]
                         dependencies.append(dependency)
         return dependencies
 

@@ -27,7 +27,7 @@ class TemporaryDirectory(object):
 
     def __exit__(self, exc, value, tb):
         logging.warning("Removing temporary directory: %s", self.name)
-        #shutil.rmtree(self.name)
+        shutil.rmtree(self.name)
 
 
 class Find(object):

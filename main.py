@@ -6,7 +6,9 @@ import os
 import legal.registry
 import legal.tfidf
 import utils.fs
-import scanner
+import scanner.java
+import scanner.js
+import scanner.python
 
 
 if __name__ == '__main__':
@@ -17,14 +19,17 @@ if __name__ == '__main__':
 
     #directory = '/home/grilo/projects/sourcejenkins/electron-quick-start/node_modules'
     #directory = '/home/grilo/projects/sourcejenkins/hola'
-    directory = '/home/grilo/projects/sourcejenkins/jenkins'
+    #directory = '/home/grilo/projects/sourcejenkins/jenkins'
+    #directory = '/home/grilo/projects/sourcejenkins/python/pipreqs'
+    directory = '/home/grilo/projects/sourcejenkins/python/huxley'
 
 
     matcher = legal.tfidf.Matcher(legal.registry.SPDX().licenses)
 
     scanners = [
-        scanner.java.Scanner(matcher),
-        scanner.js.Scanner(matcher),
+        #scanner.java.Scanner(matcher),
+        #scanner.js.Scanner(matcher),
+        scanner.python.Scanner(matcher),
     ]
 
     report = {}
