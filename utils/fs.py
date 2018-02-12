@@ -40,7 +40,10 @@ class Find(object):
         self._findall()
 
     def _findall(self):
+        logging.info("Scanning files in: %s", self.root)
         for root, dirs, files in os.walk(self.root):
+            if r'/.git' in root:
+                continue
             for f in files:
                 self._files.append(os.path.join(root, f))
             for d in dirs:

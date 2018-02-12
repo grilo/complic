@@ -9,38 +9,16 @@ import multiprocessing as mp
 import requests
 
 
-class SPDX(object):
-    """Returns all SPDX licenses, built-in cache mechanism.
+class Base(object):
 
-    Handles like an immutable dictionary.
-    """
-
-    @staticmethod
-    def _download_all(url):
-        lics = {}
-        results = requests.get(url).json()
-        details = [lic['detailsUrl'] for lic in results['licenses']]
-
-        logging.info("Downloading (%s) licenses from: %s", len(details), url)
-
-        pool = mp.Pool()
-        for response in pool.imap_unordered(requests.get, details):
-            license = response.json()
-            logging.debug("Downloaded: %s", license['licenseId'])
-            lics[license['licenseId']] = license
-        pool.close()
-        pool.join()
-
-        return lics
-
-
-    def __init__(self, spdx_url='https://spdx.org/licenses', cache_dir=None):
-        self.spdx_url = spdx_url
-        if cache_dir is None:
-            cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()), '.complic')
-        self.cache_dir = cache_dir
+    def __init__(self, url=None):
+        self.url = url
+        self.cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()), '.complic', self.__class__.__name__)
         self.cache_ttl = 15811200  # Seconds
         self._licenses = {}
+
+    def _refresh_cache(self):
+        raise NotImplementedError
 
     @property
     def licenses(self):
@@ -62,8 +40,8 @@ class SPDX(object):
             lock = os.path.join(self.cache_dir, '.updating')
             if os.path.isfile(lock):
                 return self._licenses
-            open(lock).close()
-            self._licenses = self._download_all(os.path.join(self.spdx_url, 'licenses.json'))
+            open(lock, 'w').close()
+            self._licenses = self._refresh_cache()
             os.remove(lock)
 
             with open(lic_idx, 'w') as lics:
@@ -76,3 +54,45 @@ class SPDX(object):
             self._licenses = json.loads(open(lic_idx, 'r').read())
 
         return self._licenses
+
+
+class SPDX(Base):
+    """Returns all SPDX licenses, built-in cache mechanism.
+
+    Handles like an immutable dictionary.
+    """
+
+    def __init__(self):
+        super(SPDX, self).__init__(url='https://spdx.org/licenses')
+
+    def _refresh_cache(self):
+        lics = {}
+        results = requests.get(self.url).json()
+        details = [lic['detailsUrl'] for lic in results['licenses']]
+
+        logging.info("Downloading (%s) licenses from: %s", len(details), self.url)
+
+        pool = mp.Pool()
+        for response in pool.imap_unordered(requests.get, details):
+            license = response.json()
+            logging.debug("Downloaded: %s", license['licenseId'])
+            lics[license['licenseId']] = license
+        pool.close()
+        pool.join()
+
+        return lics
+
+
+class Artifactory(Base):
+    """Returns all Artifactory licenses, built-in cache mechanism.
+
+    Handles like an immutable dictionary.
+
+    Note that we're using a "non-public" API of artifactory.
+    """
+
+    def __init__(self, url='http://artifactory:8080/artifactory/ui/licenses/crud'):
+        super(Artifactory, self).__init__(url=url)
+
+    def _refresh_cache(self):
+        return json.loads(open('/home/grilo/projects/complic/jaylics', 'r').read())

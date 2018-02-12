@@ -6,6 +6,8 @@ import os
 
 import legal.registry
 import legal.tfidf
+import legal.artifactory
+
 import utils.fs
 import scanner.java
 import scanner.js
@@ -36,12 +38,13 @@ if __name__ == '__main__':
         sys.exit(1)
 
 
-    matcher = legal.tfidf.Matcher(legal.registry.SPDX().licenses)
+    #matcher = legal.tfidf.Matcher(legal.registry.SPDX().licenses)
+    matcher = legal.artifactory.Matcher(legal.artifactory.Cache().licenses)
 
     scanners = [
         scanner.java.Scanner(matcher),
-        scanner.js.Scanner(matcher),
-        scanner.python.Scanner(matcher),
+        #scanner.js.Scanner(matcher),
+        #scanner.python.Scanner(matcher),
     ]
 
     report = {}
@@ -57,5 +60,5 @@ if __name__ == '__main__':
 
             report[dependency.identifier] = dependency
 
-    import pprint
-    pprint.pprint(report)
+    #import pprint
+    #pprint.pprint(report)

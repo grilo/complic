@@ -4,7 +4,35 @@ import logging
 import re
 import decimal
 
+import utils.cache
 import thirdparty.tfidf
+
+
+class Cache(utils.cache.Remote):
+    """Returns all SPDX licenses, built-in cache mechanism.
+
+    Handles like an immutable dictionary.
+    """
+
+    def __init__(self):
+        super(Cache, self).__init__(url='https://spdx.org/licenses', name='spdx')
+
+    def _refresh(self):
+        lics = {}
+        results = requests.get(self.url).json()
+        details = [lic['detailsUrl'] for lic in results['licenses']]
+
+        logging.info("Downloading (%s) licenses from: %s", len(details), self.url)
+
+        pool = mp.Pool()
+        for response in pool.imap_unordered(requests.get, details):
+            license = response.json()
+            logging.debug("Downloaded: %s", license['licenseId'])
+            lics[license['licenseId']] = license
+        pool.close()
+        pool.join()
+
+        return lics
 
 
 class Matcher(object):

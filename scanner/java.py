@@ -17,6 +17,7 @@ class Scanner(scanner.base.Scanner):
         self.register_handler(re.compile(r'.*/pom.xml$'),
                               self.handle_pom)
 
+
     def handle_pom(self, file_path):
         logging.debug("Matched pom handler: %s", file_path)
 
@@ -43,13 +44,14 @@ class Scanner(scanner.base.Scanner):
         coords_url = re.compile(r'\((.*) - (http.*)\)')
         dependencies = []
         for line in open(thirdparty, 'r').read().splitlines():
+
             if not line:
                 continue
             elif line.startswith('List'):
                 continue
 
             match = regex.search(line)
-            license = match.group(1)
+            license = match.group(1).replace('(', '').replace(')', '')
             name = match.group(2)
             coords, url = match.group(3).split(' - ', 1)
             coords = coords.replace('(', '')
