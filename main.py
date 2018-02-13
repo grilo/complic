@@ -4,14 +4,12 @@ import logging
 import argparse
 import os
 
-import legal.registry
-import legal.tfidf
-import legal.artifactory
-
 import utils.fs
 import scanner.java
 import scanner.js
 import scanner.python
+
+import legal.artifactory
 
 
 if __name__ == '__main__':
@@ -24,6 +22,8 @@ if __name__ == '__main__':
         help='Increase output verbosity')
     parser.add_argument('-d', '--directory', default=os.getcwd(), \
         help='The directory to scan.')
+    parser.add_argument('-f', '--format', default='pretty', \
+        help='The output format (csv, json or pretty).')
 
     args = parser.parse_args()
 
@@ -38,13 +38,12 @@ if __name__ == '__main__':
         sys.exit(1)
 
 
-    #matcher = legal.tfidf.Matcher(legal.registry.SPDX().licenses)
     matcher = legal.artifactory.Matcher(legal.artifactory.Cache().licenses)
 
     scanners = [
         scanner.java.Scanner(matcher),
-        #scanner.js.Scanner(matcher),
-        #scanner.python.Scanner(matcher),
+        scanner.js.Scanner(matcher),
+        scanner.python.Scanner(matcher),
     ]
 
     report = {}
@@ -60,5 +59,18 @@ if __name__ == '__main__':
 
             report[dependency.identifier] = dependency
 
-    #import pprint
-    #pprint.pprint(report)
+    if args.format == 'pretty':
+        for name, dep in report.items():
+            print name, ','.join(dep.licenses)
+    elif args.format == 'csv':
+        items = []
+        for name, dep in report.items():
+            items.append(name)
+            items.append(' '.join(dep.licenses))
+        print ','.join(items)
+    elif args.format == 'json':
+        items = {}
+        for name, dep in report.items():
+            items[name] = list(dep.licenses)
+        import jsono
+        print json.dumps(items)

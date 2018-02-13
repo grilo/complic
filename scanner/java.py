@@ -59,7 +59,7 @@ class Scanner(scanner.base.Scanner):
 
             dependency = scanner.base.Dependency(thirdparty)
             dependency.identifier = coords
-            dependency.licenses.add(self.license_matcher.name(license))
+            dependency.licenses.add(self.license_matcher.match(license))
 
             dependencies.append(dependency)
 

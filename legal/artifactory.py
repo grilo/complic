@@ -27,32 +27,19 @@ class Cache(utils.cache.Remote):
 class Matcher(object):
 
     def __init__(self, registry):
-        self.registry = registry
         # Build regex list
-        self.license_corpus = {}
-        for lic in self.registry:
+        self.licenses = {}
+        for lic in registry:
             regex = lic.get('regexp', None)
             if regex:
-                self.license_corpus[lic['name']] = re.compile(regex, re.IGNORECASE)
+                self.licenses[lic['name']] = re.compile(regex, re.IGNORECASE)
 
-    def generic(self, string):
+    def match(self, string):
         matches = []
-        for lic, regex in self.license_corpus.items():
+        for lic, regex in self.licenses.items():
             if regex.match(string):
                 matches.append(lic)
         if not matches:
             matches.append('UNKNOWN')
         print "Matches for [%s] %s" % (string, ','.join(matches))
         return matches[0]
-
-    def text(self, string):
-        return self.generic(string)
-
-    def url(self, string):
-        return self.generic(string)
-
-    def name(self, string):
-        return self.generic(string)
-
-    def best(self, string):
-        return self.generic(string)

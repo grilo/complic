@@ -52,6 +52,6 @@ class Scanner(scanner.base.Scanner):
             pkgjson['license'] = pkgjson['licenses']
 
         for lic in Scanner.get_licenses(pkgjson):
-            dependency.licenses.add(self.license_matcher.name(lic))
+            dependency.licenses.add(self.license_matcher.match(lic))
 
         return [dependency]

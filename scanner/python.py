@@ -124,4 +124,11 @@ class Scanner(scanner.base.Scanner):
         for req in pkginfo['requirements']:
             dependencies.update(self.__deptree(req, dependencies))
 
+        # Match the captured licenses with our registry
+        for identifier, dependency in dependencies.items():
+            lics = set()
+            for lic in dependency.licenses:
+                lics.add(self.license_matcher.match(lic))
+            dependency.licenses = lics
+
         return dependencies.values()
