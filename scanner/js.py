@@ -6,7 +6,6 @@ import re
 import os
 
 import scanner.base
-import scanner.exceptions
 
 
 class Scanner(scanner.base.Scanner):
