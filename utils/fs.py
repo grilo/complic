@@ -26,7 +26,7 @@ class TemporaryDirectory(object):
         return self.name
 
     def __exit__(self, exc, value, tb):
-        logging.warning("Removing temporary directory: %s", self.name)
+        logging.debug("Removing temporary directory: %s", self.name)
         shutil.rmtree(self.name)
 
 
@@ -40,7 +40,7 @@ class Find(object):
         self._findall()
 
     def _findall(self):
-        logging.info("Scanning files in: %s", self.root)
+        logging.debug("Retrieving file list from: %s", self.root)
         for root, dirs, files in os.walk(self.root):
             if r'/.git' in root:
                 continue

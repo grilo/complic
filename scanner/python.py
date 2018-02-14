@@ -6,9 +6,9 @@ import os
 import setuptools.sandbox
 import pkg_resources
 import copy
-import pip
 import zipfile
 import tarfile
+import subprocess
 
 import scanner.base
 import utils.fs
@@ -45,8 +45,8 @@ class Scanner(scanner.base.Scanner):
         return deps
 
 
-    def __init__(self, *args, **kwargs):
-        super(Scanner, self).__init__(*args, **kwargs)
+    def __init__(self):
+        super(Scanner, self).__init__()
 
         self.register_handler(re.compile(r'.*/setup.py$'),
                               self.handle_setuppy)
@@ -62,8 +62,17 @@ class Scanner(scanner.base.Scanner):
         old_dir = os.getcwd()
         with utils.fs.TemporaryDirectory() as tmp:
             os.chdir(tmp)
-            logging.info("Downloading package and dependencies: %s", pkgname)
-            rc = pip.main(['-q', 'download', pkgname])
+            logging.debug("Downloading package and dependencies: %s", pkgname)
+            # Running pip with -q messes with our logs
+            log_level = logging.getLogger().level
+            # See: https://stackoverflow.com/questions/38754432/pip-main-resetting-logging-settings-in-python
+            process = subprocess.Popen(["pip", "download", pkgname], 
+                                       shell=False,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            process.wait()
+
+            logging.getLogger().setLevel(log_level)
             for archive in utils.fs.Find(tmp).files:
                 if archive.endswith('.whl'):
                     wheel = zipfile.ZipFile(archive)
@@ -87,13 +96,13 @@ class Scanner(scanner.base.Scanner):
             return {}
 
         if pkgname not in self.pkgdb:
-            logging.warning("No local metadata for dependency: %s", pkgname)
+            logging.debug("No local metadata for dependency: %s", pkgname)
             self.__download(pkgname)
 
         pkginfo = self.pkgdb[pkgname]
 
         dep = scanner.base.Dependency('metadata')
-        dep.identifier = pkginfo['identifier']
+        dep.identifier = 'python:' + pkginfo['identifier']
         dep.licenses.add(pkginfo['license'])
         dependencies[dep.identifier] = dep
 
@@ -103,6 +112,8 @@ class Scanner(scanner.base.Scanner):
 
     def handle_setuppy(self, file_path):
         logging.debug("Matched setup.py handler: %s", file_path)
+
+        file_path = os.path.abspath(file_path)
 
         # Generate a <package>.egg-info/PKG-INFO which we can parse
         setuptools.sandbox.run_setup(file_path, ['egg_info'])
@@ -128,7 +139,7 @@ class Scanner(scanner.base.Scanner):
         for identifier, dependency in dependencies.items():
             lics = set()
             for lic in dependency.licenses:
-                lics.add(self.license_matcher.match(lic))
+                lics.add(lic)
             dependency.licenses = lics
 
         return dependencies.values()

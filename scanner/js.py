@@ -18,19 +18,18 @@ class Scanner(scanner.base.Scanner):
             pkgjson['license'] = pkgjson['licenses']
         if 'license' in pkgjson.keys():
             # Normalize the type to list
-            if isinstance(pkgjson['license'], str) or \
-                isinstance(pkgjson['license'], unicode):
+            if not isinstance(pkgjson['license'], list):
                 pkgjson['license'] = [pkgjson['license']]
 
-            for license in pkgjson['license']:
-                if isinstance(license, dict):
-                    lics.append(license['type'])
+            for lic in pkgjson['license']:
+                if isinstance(lic, str) or isinstance(lic, unicode):
+                    lics.append(lic)
                 else:
-                    lics.append(license)
+                    lics.append(lic['type'])
         return lics
 
-    def __init__(self, *args, **kwargs):
-        super(Scanner, self).__init__(*args, **kwargs)
+    def __init__(self):
+        super(Scanner, self).__init__()
 
         self.register_handler(re.compile(r'.*/package.json$'),
                               self.handle_pkgjson)
@@ -44,13 +43,9 @@ class Scanner(scanner.base.Scanner):
         version = pkgjson.get('version', '<none>')
 
         dependency = scanner.base.Dependency(file_path)
-        dependency.identifier = ':'.join([name, version])
-
-        # Normalize the naming if required
-        if 'licenses' in pkgjson.keys():
-            pkgjson['license'] = pkgjson['licenses']
+        dependency.identifier = 'js:' + name + ':' + version
 
         for lic in Scanner.get_licenses(pkgjson):
-            dependency.licenses.add(self.license_matcher.match(lic))
+            dependency.licenses.add(lic)
 
         return [dependency]

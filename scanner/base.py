@@ -6,8 +6,7 @@ import re
 
 class Scanner(object):
 
-    def __init__(self, license_matcher):
-        self.license_matcher = license_matcher
+    def __init__(self):
         self.handlers = {}
         self.register_handler(re.compile('ONLY_EXAMPLE'),
                               self.example_handler)
@@ -19,7 +18,7 @@ class Scanner(object):
         pass
 
     def scan(self, filelist):
-        logging.info("Scanning (%i) files with: %s", len(filelist), self.__module__)
+        logging.info("Scanning with: %s", self.__module__)
         dependencies = []
         for f in filelist:
             for regex, handler in self.handlers.items():
@@ -27,16 +26,17 @@ class Scanner(object):
                     for dependency in handler(f):
                         dependency.scanner = self.__class__.__module__.split('.')[-1]
                         dependencies.append(dependency)
+        logging.info("Dependencies found: %i", len(dependencies))
         return dependencies
 
 
 class Dependency(object):
 
-    def __init__(self, path):
-        self.path = path
-        self.scanner = None
-        self.licenses = set()
-        self._id = None
+    def __init__(self, *args, **kwargs):
+        self._licenses = set()
+        for k, v in kwargs.items():
+            if not k in self.__dict__:
+                setattr(self, '_' + k, v)
 
     @property
     def identifier(self):
@@ -48,19 +48,13 @@ class Dependency(object):
     def identifier(self, value):
         self._id = value
 
-    def merge(self, dependency):
-        basis = None
-        if self.identifier.startswith('/'):
-            basis = Dependency(dependency.path)
-            basis.identifier = dependency.identifier
-            basis.scanner = dependency.scanner
-        else:
-            basis = Dependency(self.path)
-            basis.identifier = self.identifier
-            basis.scanner = self.scanner
+    @property
+    def licenses(self):
+        return self._licenses
 
-        basis.licenses = dependency.licenses.union(self.licenses)
-        return basis
+    @licenses.setter
+    def licenses(self, value):
+        self._licenses = value
 
     def __repr__(self):
         try:

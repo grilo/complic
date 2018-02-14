@@ -11,8 +11,8 @@ import scanner.base
 
 class Scanner(scanner.base.Scanner):
 
-    def __init__(self, *args, **kwargs):
-        super(Scanner, self).__init__(*args, **kwargs)
+    def __init__(self):
+        super(Scanner, self).__init__()
 
         self.register_handler(re.compile(r'.*/pom.xml$'),
                               self.handle_pom)
@@ -45,9 +45,7 @@ class Scanner(scanner.base.Scanner):
         dependencies = []
         for line in open(thirdparty, 'r').read().splitlines():
 
-            if not line:
-                continue
-            elif line.startswith('List'):
+            if not line or line.startswith('List'):
                 continue
 
             match = regex.search(line)
@@ -58,8 +56,8 @@ class Scanner(scanner.base.Scanner):
             url = url.replace(')', '')
 
             dependency = scanner.base.Dependency(thirdparty)
-            dependency.identifier = coords
-            dependency.licenses.add(self.license_matcher.match(license))
+            dependency.identifier = 'java:' + coords
+            dependency.licenses.add(license)
 
             dependencies.append(dependency)
 

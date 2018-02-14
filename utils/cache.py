@@ -2,36 +2,35 @@
 
 import logging
 import os
-import json
 import time
 import multiprocessing as mp
 
-import requests
 
+class File(object):
 
-class Remote(object):
-
-    def __init__(self, url=None, name='Cache'):
-        self.url = url
+    def __init__(self, name='default'):
         self.cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()), '.complic', name)
         self.cache_ttl = 15811200  # Seconds
-        self._licenses = {}
+        self.contents = {}
 
-    def _refresh(self):
+    def refresh(self):
+        """Requires implementation.
+
+        Should contain the logic to be executed when the cache is marked as
+        invalid. Should set "self.contents" to whatever was retrieved."""
         raise NotImplementedError
 
-    @property
-    def licenses(self):
+    def get(self):
         """Layered approach for handling the cache:
         1. prefer local disk.
         2. if not found or expired, download it
         """
 
-        lic_idx = os.path.join(self.cache_dir, 'licenses.json')
+        cache_file = os.path.join(self.cache_dir, 'cache')
 
         # If local cache is invalid, rebuild it
-        if not os.path.isfile(lic_idx) or \
-            time.time() - os.path.getmtime(lic_idx) > self.cache_ttl:
+        if not os.path.isfile(cache_file) or \
+            time.time() - os.path.getmtime(cache_file) > self.cache_ttl:
             logging.warning("Cache invalid, downloading...")
 
             if not os.path.isdir(self.cache_dir):
@@ -39,20 +38,20 @@ class Remote(object):
 
             lock = os.path.join(self.cache_dir, '.updating')
             if os.path.isfile(lock):
-                return self._licenses
+                return self.contents
             open(lock, 'w').close()
             try:
-                self._licenses = self._refresh()
+                self.contents = self.refresh()
             finally:
                 os.remove(lock)
 
-            with open(lic_idx, 'w') as lics:
+            with open(cache_file, 'w') as fd:
                 logging.info("Caching results...")
-                json.dump(self._licenses, lics)
+                fd.write(self.contents)
 
-        # Return locally stored licenses
-        if not self._licenses:
-            logging.info("Retrieving cached licenses...")
-            self._licenses = json.loads(open(lic_idx, 'r').read())
+        # Return locally stored contents
+        if not self.contents:
+            logging.debug("Retrieving cached content...")
+            self.contents = open(cache_file, 'r').read()
 
-        return self._licenses
+        return self.contents
