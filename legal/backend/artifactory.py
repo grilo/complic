@@ -19,10 +19,7 @@ class Cache(utils.cache.File):
         self.uname = uname
         self.passwd = passwd
     def refresh(self):
-        """XXX To be implemented
-        return self.requests.get(url, auth=(uname, passwd)).json()
-        """
-        return open('/home/grilo/projects/complic/jaylics', 'r').read()
+        return requests.get(self.url, auth=(self.uname, self.passwd)).text
 
 class Registry(legal.backend.base.Registry):
     """Returns all Artifactory licenses, built-in cache mechanism.
