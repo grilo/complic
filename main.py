@@ -55,7 +55,7 @@ if __name__ == '__main__':
     registry = legal.backend.artifactory.Registry('', '', '')
 
     license_identifiers = {}
-    unknown_licenses = set()
+    unknown_licenses = {}
     for scanner in scanners:
         for dependency in scanner.scan(utils.fs.Find(args.directory).files):
             for license in dependency.licenses:
@@ -65,11 +65,12 @@ if __name__ == '__main__':
                         license_identifiers[name] = set()
                     license_identifiers[name].add(dependency.identifier)
                 except legal.exceptions.UnknownLicenseError:
-                    unknown_licenses.add(license)
+                    if not license in unknown_licenses:
+                        unknown_licenses[license] = set()
+                    unknown_licenses[license].add(dependency.identifier)
 
-
-    for lic in unknown_licenses:
-        logging.warning("Unknown license: %s", lic)
+    for lic, apps in unknown_licenses.items():
+        logging.warning("Found (%s) hits of unknown license: %s", str(len(apps)), lic)
 
     # For every non-compliant license, the application will exit with the
     # code 1 + <non-compliant license count>. Exit code 1 is reserved for

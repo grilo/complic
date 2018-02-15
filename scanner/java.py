@@ -15,10 +15,11 @@ class Scanner(scanner.base.Scanner):
         super(Scanner, self).__init__()
 
         self.register_handler(re.compile(r'.*/pom.xml$'),
-                              self.handle_pom)
+                              Scanner.handle_pom)
 
 
-    def handle_pom(self, file_path):
+    @staticmethod
+    def handle_pom(file_path):
         logging.debug("Matched pom handler: %s", file_path)
 
         thirdparty = os.path.join(os.path.dirname(file_path),
@@ -37,9 +38,10 @@ class Scanner(scanner.base.Scanner):
                 logging.error("Something went wrong when running: %s", command)
                 return []
 
-        return self.parse_thirdparty(thirdparty)
+        return Scanner.parse_thirdparty(thirdparty)
 
-    def parse_thirdparty(self, thirdparty):
+    @staticmethod
+    def parse_thirdparty(thirdparty):
         regex = re.compile(r'\s(\(.*\)) (\w+.*) (\(.*\))')
         coords_url = re.compile(r'\((.*) - (http.*)\)')
         dependencies = []
@@ -49,6 +51,8 @@ class Scanner(scanner.base.Scanner):
                 continue
 
             match = regex.search(line)
+            if not match:
+                continue
             license = match.group(1).replace('(', '').replace(')', '')
             name = match.group(2)
             coords, url = match.group(3).split(' - ', 1)

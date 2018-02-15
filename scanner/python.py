@@ -12,6 +12,7 @@ import subprocess
 
 import scanner.base
 import utils.fs
+import utils.dictionary
 
 
 class Scanner(scanner.base.Scanner):
@@ -29,21 +30,17 @@ class Scanner(scanner.base.Scanner):
         info['requirements'] = set()
 
         for match in regex_req.findall(meta):
-            for req in Scanner.without_version(match):
-                info['requirements'].add(req)
+            info['requirements'].add(Scanner.without_version(match))
 
         info['identifier'] = info['name'] + ':' + info['version']
 
         return info
 
     @staticmethod
-    def without_version(requires):
-        deps = []
+    def without_version(requires_line):
         regex = re.compile(r'^([A-Za-z0-9_\-\.]+).*$')
-        for line in requires.splitlines():
-            deps.append(regex.search(line).group(1))
-        return deps
-
+        match = regex.search(requires_line)
+        return match.group(1)
 
     def __init__(self):
         super(Scanner, self).__init__()
@@ -51,7 +48,7 @@ class Scanner(scanner.base.Scanner):
         self.register_handler(re.compile(r'.*/setup.py$'),
                               self.handle_setuppy)
 
-        self.pkgdb = {}
+        self.pkgdb = utils.dictionary.LowerCase()
         for dist in pkg_resources.working_set:
             for metafile in ['PKG-INFO', 'METADATA']:
                 if dist.has_metadata(metafile):
@@ -116,7 +113,7 @@ class Scanner(scanner.base.Scanner):
         file_path = os.path.abspath(file_path)
 
         # Generate a <package>.egg-info/PKG-INFO which we can parse
-        setuptools.sandbox.run_setup(file_path, ['egg_info'])
+        setuptools.sandbox.run_setup(file_path, ['-q', 'egg_info'])
 
         pkginfo = {}
         for path in utils.fs.Find(os.path.dirname(file_path)).files:
@@ -126,8 +123,7 @@ class Scanner(scanner.base.Scanner):
         for path in utils.fs.Find(os.path.dirname(file_path)).files:
             if path.endswith('requires.txt'):
                 for line in open(path, 'r').read().splitlines():
-                    for dep in Scanner.without_version(line):
-                        pkginfo['requirements'].add(dep)
+                    pkginfo['requirements'].add(Scanner.without_version(line))
 
         # We now have the initial list of dependencies. Run through all of
         # them recursively to find out their licenses.
