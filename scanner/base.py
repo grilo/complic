@@ -26,7 +26,7 @@ class Scanner(object):
                     for dependency in handler(f):
                         dependency.scanner = self.__class__.__module__.split('.')[-1]
                         dependencies.append(dependency)
-        logging.info("Dependencies found: %i", len(dependencies))
+        logging.info("Apps found: %i", len(dependencies))
         return dependencies
 
 

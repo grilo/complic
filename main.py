@@ -70,16 +70,17 @@ if __name__ == '__main__':
                     unknown_licenses[license].add(dependency.identifier)
 
     for lic, apps in unknown_licenses.items():
-        logging.warning("Found (%s) hits of unknown license: %s", str(len(apps)), lic)
+        logging.warning("Apps using unknown license (%s): %i", lic, len(apps))
 
     # For every non-compliant license, the application will exit with the
     # code 1 + <non-compliant license count>. Exit code 1 is reserved for
     # internal application errors.
     not_approved = 0
     for name, apps in license_identifiers.items():
-        state = registry.is_approved(name)
-        if not state:
+        if registry.is_approved(name):
+            logging.info("Apps using approved license (%s): %i", name, len(apps))
+        else:
             not_approved += 1
-        logging.info("Found (%s) hits for license approved (%s): %s", str(len(apps)).rjust(3), state, name)
+            logging.error("Apps using unapproved license (%s): %i", name, len(apps))
 
     sys.exit(not_approved + 1)
