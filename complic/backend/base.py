@@ -2,8 +2,6 @@
 
 import logging
 
-import utils.cache
-
 
 class Registry(object):
     """Holds the approval state of each license."""

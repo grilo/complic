@@ -6,10 +6,10 @@ import os
 import subprocess
 import shlex
 
-import scanner.base
+import complic.scanner.base
 
 
-class Scanner(scanner.base.Scanner):
+class Scanner(complic.scanner.base.Scanner):
 
     def __init__(self):
         super(Scanner, self).__init__()
@@ -59,7 +59,7 @@ class Scanner(scanner.base.Scanner):
             coords = coords.replace('(', '')
             url = url.replace(')', '')
 
-            dependency = scanner.base.Dependency(thirdparty)
+            dependency = complic.scanner.base.Dependency(thirdparty)
             dependency.identifier = 'java:' + coords
             dependency.licenses.add(license)
 

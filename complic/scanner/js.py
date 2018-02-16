@@ -5,10 +5,10 @@ import json
 import re
 import os
 
-import scanner.base
+import complic.scanner.base
 
 
-class Scanner(scanner.base.Scanner):
+class Scanner(complic.scanner.base.Scanner):
 
     def __init__(self):
         super(Scanner, self).__init__()
@@ -29,7 +29,7 @@ class Scanner(scanner.base.Scanner):
         name = pkgjson.get('name', '<none>')
         version = pkgjson.get('version', '<none>')
 
-        dependency = scanner.base.Dependency(file_path)
+        dependency = complic.scanner.base.Dependency(file_path)
         dependency.identifier = 'js:' + name + ':' + version
 
         for lic in Scanner.get_licenses(pkgjson):

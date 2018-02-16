@@ -5,17 +5,15 @@ import argparse
 import os
 import sys
 
-import utils.fs
-import scanner.java
-import scanner.js
-import scanner.python
+import complic.utils.fs
+import complic.scanner.java
+import complic.scanner.js
+import complic.scanner.python
+import complic.backend.exceptions
+import complic.backend.artifactory
 
-import legal.exceptions
-import legal.backend.artifactory
 
-
-if __name__ == '__main__':
-
+def main():
 
     desc = "Collects all licensing information reported by several package managers (mvn, npm, pypi, etc.)."
     parser = argparse.ArgumentParser(description=desc)
@@ -41,30 +39,30 @@ if __name__ == '__main__':
 
     # Scanners return a list of dependencies and their associated legal blurb.
     scanners = [
-        scanner.java.Scanner(),
-        scanner.js.Scanner(),
-        scanner.python.Scanner(),
+        complic.scanner.java.Scanner(),
+        complic.scanner.js.Scanner(),
+        complic.scanner.python.Scanner(),
     ]
 
     # We then take that legal blurb and try to find the best SPDX matching
     # designation.
-    spdx = legal.backend.artifactory.SPDX('', '', '')
+    spdx = complic.backend.artifactory.SPDX('', '', '')
 
     # We then run that SPDX against the given backend to know if this is
     # considered a compliant license or not.
-    registry = legal.backend.artifactory.Registry('', '', '')
+    registry = complic.backend.artifactory.Registry('', '', '')
 
     license_identifiers = {}
     unknown_licenses = {}
-    for scanner in scanners:
-        for dependency in scanner.scan(utils.fs.Find(args.directory).files):
+    for dep_scanner in scanners:
+        for dependency in dep_scanner.scan(complic.utils.fs.Find(args.directory).files):
             for license in dependency.licenses:
                 try:
                     name = spdx.match(license)
                     if not name in license_identifiers:
                         license_identifiers[name] = set()
                     license_identifiers[name].add(dependency.identifier)
-                except legal.exceptions.UnknownLicenseError:
+                except complic.backend.exceptions.UnknownLicenseError:
                     if not license in unknown_licenses:
                         unknown_licenses[license] = set()
                     unknown_licenses[license].add(dependency.identifier)
@@ -84,3 +82,6 @@ if __name__ == '__main__':
             logging.error("Apps using unapproved license (%s): %i", name, len(apps))
 
     sys.exit(not_approved + 1)
+
+if __name__ == '__main__':
+    main()

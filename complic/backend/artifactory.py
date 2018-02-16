@@ -6,12 +6,12 @@ import json
 
 import requests
 
-import utils.cache
-import legal.backend.base
-import legal.exceptions
+import complic.utils.cache
+import complic.backend.base
+import complic.backend.exceptions
 
 
-class Cache(utils.cache.File):
+class Cache(complic.utils.cache.File):
 
     def __init__(self, base_url, uname, passwd):
         super(Cache, self).__init__('artifactory')
@@ -19,9 +19,10 @@ class Cache(utils.cache.File):
         self.uname = uname
         self.passwd = passwd
     def refresh(self):
-        return requests.get(self.url, auth=(self.uname, self.passwd)).text
+        return open('/home/grilo/.complic/artifactory/cache', 'r').read()
+        #return requests.get(self.url, auth=(self.uname, self.passwd)).text
 
-class Registry(legal.backend.base.Registry):
+class Registry(complic.backend.base.Registry):
     """Returns all Artifactory licenses, built-in cache mechanism.
 
     Handles like an immutable dictionary.
@@ -37,11 +38,11 @@ class Registry(legal.backend.base.Registry):
 
     def is_approved(self, license):
         if license not in self.cache.keys():
-            raise legal.exceptions.UnknownLicenseError
+            raise complic.backend.exceptions.UnknownLicenseError
         return self.cache[license]
 
 
-class SPDX(legal.backend.base.SPDX):
+class SPDX(complic.backend.base.SPDX):
 
     def __init__(self, base_url='http://artifactory:8080', username=None, password=None):
         super(SPDX, self).__init__()
@@ -62,4 +63,4 @@ class SPDX(legal.backend.base.SPDX):
             if props['regexp'].match(string):
                 logging.debug("SPDX (%s) found for: %s", lic, string)
                 return lic
-        raise legal.exceptions.UnknownLicenseError
+        raise complic.backend.exceptions.UnknownLicenseError

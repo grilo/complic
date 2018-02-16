@@ -10,12 +10,12 @@ import zipfile
 import tarfile
 import subprocess
 
-import scanner.base
-import utils.fs
-import utils.dictionary
+import complic.scanner.base
+import complic.utils.fs
+import complic.utils.dictionary
 
 
-class Scanner(scanner.base.Scanner):
+class Scanner(complic.scanner.base.Scanner):
 
     @staticmethod
     def parse_metadata(meta):
@@ -48,7 +48,7 @@ class Scanner(scanner.base.Scanner):
         self.register_handler(re.compile(r'.*/setup.py$'),
                               self.handle_setuppy)
 
-        self.pkgdb = utils.dictionary.LowerCase()
+        self.pkgdb = complic.utils.dictionary.LowerCase()
         for dist in pkg_resources.working_set:
             for metafile in ['PKG-INFO', 'METADATA']:
                 if dist.has_metadata(metafile):
@@ -57,7 +57,7 @@ class Scanner(scanner.base.Scanner):
 
     def __download(self, pkgname):
         old_dir = os.getcwd()
-        with utils.fs.TemporaryDirectory() as tmp:
+        with complic.utils.fs.TemporaryDirectory() as tmp:
             os.chdir(tmp)
             logging.debug("Downloading package and dependencies: %s", pkgname)
             # Running pip with -q messes with our logs
@@ -70,7 +70,7 @@ class Scanner(scanner.base.Scanner):
             process.wait()
 
             logging.getLogger().setLevel(log_level)
-            for archive in utils.fs.Find(tmp).files:
+            for archive in complic.utils.fs.Find(tmp).files:
                 if archive.endswith('.whl'):
                     wheel = zipfile.ZipFile(archive)
                     for f in wheel.namelist():
@@ -98,7 +98,7 @@ class Scanner(scanner.base.Scanner):
 
         pkginfo = self.pkgdb[pkgname]
 
-        dep = scanner.base.Dependency('metadata')
+        dep = complic.scanner.base.Dependency('metadata')
         dep.identifier = 'python:' + pkginfo['identifier']
         dep.licenses.add(pkginfo['license'])
         dependencies[dep.identifier] = dep
@@ -116,11 +116,11 @@ class Scanner(scanner.base.Scanner):
         setuptools.sandbox.run_setup(file_path, ['-q', 'egg_info'])
 
         pkginfo = {}
-        for path in utils.fs.Find(os.path.dirname(file_path)).files:
+        for path in complic.utils.fs.Find(os.path.dirname(file_path)).files:
             if path.endswith('PKG-INFO') or path.endswith('METADATA'):
                 pkginfo.update(Scanner.parse_metadata(open(path, 'r').read()))
 
-        for path in utils.fs.Find(os.path.dirname(file_path)).files:
+        for path in complic.utils.fs.Find(os.path.dirname(file_path)).files:
             if path.endswith('requires.txt'):
                 for line in open(path, 'r').read().splitlines():
                     pkginfo['requirements'].add(Scanner.without_version(line))
