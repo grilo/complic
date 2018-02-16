@@ -19,8 +19,7 @@ class Cache(complic.utils.cache.File):
         self.uname = uname
         self.passwd = passwd
     def refresh(self):
-        return open('/home/grilo/.complic/artifactory/cache', 'r').read()
-        #return requests.get(self.url, auth=(self.uname, self.passwd)).text
+        return requests.get(self.url, auth=(self.uname, self.passwd)).text
 
 class Registry(complic.backend.base.Registry):
     """Returns all Artifactory licenses, built-in cache mechanism.
