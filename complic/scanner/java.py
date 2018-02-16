@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+    Scans java projects for license information.
+"""
 
 import logging
 import re
@@ -10,6 +13,11 @@ import complic.scanner.base
 
 
 class Scanner(complic.scanner.base.Scanner):
+    """
+        The handler looks for pom files. We then run the maven plugin
+        which produces some THIRD-PARTY files which we will then parse
+        for licensing details.
+    """
 
     def __init__(self):
         super(Scanner, self).__init__()
@@ -20,6 +28,11 @@ class Scanner(complic.scanner.base.Scanner):
 
     @staticmethod
     def handle_pom(file_path):
+        """The licensing plugin which does all the hard work for us.
+
+        This is not very elegant since, in the case of multi-module projects,
+        we're running too many times without any need."""
+
         logging.debug("Matched pom handler: %s", file_path)
 
         thirdparty = os.path.join(os.path.dirname(file_path),
@@ -34,7 +47,7 @@ class Scanner(complic.scanner.base.Scanner):
             try:
                 logging.info("Running license-mvn-plugin on: %s", file_path)
                 subprocess.check_call(shlex.split(command))
-            except subprocess.CalledProcessError as e:
+            except subprocess.CalledProcessError:
                 logging.error("Something went wrong when running: %s", command)
                 return []
 
@@ -42,8 +55,11 @@ class Scanner(complic.scanner.base.Scanner):
 
     @staticmethod
     def parse_thirdparty(thirdparty):
+        """Parse the THIRD-PARTY files.
+
+        These probably aren't meant to be parsed directly, but the structure
+        is regular enough for our use case."""
         regex = re.compile(r'\s(\(.*\)) (\w+.*) (\(.*\))')
-        coords_url = re.compile(r'\((.*) - (http.*)\)')
         dependencies = []
         for line in open(thirdparty, 'r').read().splitlines():
 
@@ -53,15 +69,15 @@ class Scanner(complic.scanner.base.Scanner):
             match = regex.search(line)
             if not match:
                 continue
-            license = match.group(1).replace('(', '').replace(')', '')
-            name = match.group(2)
+            license_string = match.group(1).replace('(', '').replace(')', '')
+            # match.group(2) is "name" but it's useless
             coords, url = match.group(3).split(' - ', 1)
             coords = coords.replace('(', '')
             url = url.replace(')', '')
 
-            dependency = complic.scanner.base.Dependency(thirdparty)
+            dependency = complic.scanner.base.Dependency(**{'path': thirdparty})
             dependency.identifier = 'java:' + coords
-            dependency.licenses.add(license)
+            dependency.licenses.add(license_string)
 
             dependencies.append(dependency)
 

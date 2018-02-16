@@ -1,18 +1,32 @@
 #!/usr/bin/env python
+"""
+Cache mechanism.
+
+Licensing information is usually not very lightweight, and repeated requests
+put unnecessary strain on the network.
+"""
 
 import logging
 import os
 import time
-import multiprocessing as mp
+import abc
 
 
 class File(object):
+    """Simple file-based cache mechanism.
+
+    The contents are stored as plaintext in: ~/.complic/<name>/cache
+    """
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, name='default'):
-        self.cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()), '.complic', name)
+        self.cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()),
+                                      '.complic',
+                                      name)
         self.cache_ttl = 15811200  # Seconds
         self.contents = {}
 
+    @abc.abstractmethod
     def refresh(self):
         """Requires implementation.
 
@@ -45,13 +59,17 @@ class File(object):
             finally:
                 os.remove(lock)
 
-            with open(cache_file, 'w') as fd:
+            with open(cache_file, 'w') as cache_fd:
                 logging.info("Caching results...")
-                fd.write(self.contents)
+                cache_fd.write(self.contents)
 
         # Return locally stored contents
         if not self.contents:
             logging.debug("Retrieving cached content...")
-            self.contents = open(cache_file, 'r').read()
+            try:
+                self.contents = open(cache_file, 'r').read()
+            except IOError:
+                logging.critical("Unable to read cache from disk.")
+                logging.critical("Intervention required: %s", self.cache_dir)
 
         return self.contents

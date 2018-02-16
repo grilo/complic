@@ -1,10 +1,18 @@
 #!/usr/bin/env python
+"""Dictionary utilities."""
 
 import collections
 
 
 class LowerCase(collections.MutableMapping):
-    """Dictionary where the keys are always lowercase."""
+    """Keys are always lowercase.
+
+    Example:
+        >>> a = LowerCase()
+        >>> a['HELLO'] = 'world'
+        >>> a['hello']
+        world
+    """
 
     def __init__(self, *args, **kwargs):
         self.store = dict()

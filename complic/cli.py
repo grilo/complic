@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+CLI entrypoint and main execution logic.
+"""
 
 import logging
 import argparse
@@ -6,6 +9,7 @@ import os
 import sys
 
 import complic.utils.fs
+import complic.utils.config
 import complic.scanner.java
 import complic.scanner.js
 import complic.scanner.python
@@ -13,9 +17,21 @@ import complic.backend.exceptions
 import complic.backend.artifactory
 
 
-def main():
+def get_scanners():
+    """
+        Scanners return a list of complic.scanner.base.Dependency objects
+        which contain, among other things, the legal blurb we need.
+    """
+    return [
+        complic.scanner.java.Scanner(),
+        complic.scanner.js.Scanner(),
+        complic.scanner.python.Scanner(),
+    ]
 
-    desc = "Collects all licensing information reported by several package managers (mvn, npm, pypi, etc.)."
+def main():
+    """Make the linter happy."""
+
+    desc = "Collect licensing information from package managers (mvn, npm, pypi, etc.)."
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument("-v", "--verbose", action="store_true", \
@@ -37,35 +53,30 @@ def main():
         logging.critical("Specified parameter directory doesn't look like one: %s", args.directory)
         sys.exit(1)
 
-    # Scanners return a list of dependencies and their associated legal blurb.
-    scanners = [
-        complic.scanner.java.Scanner(),
-        complic.scanner.js.Scanner(),
-        complic.scanner.python.Scanner(),
-    ]
+    config = complic.utils.config.Manager()
 
     # We then take that legal blurb and try to find the best SPDX matching
     # designation.
-    spdx = complic.backend.artifactory.SPDX('', '', '')
+    spdx = complic.backend.artifactory.SPDX(config)
 
     # We then run that SPDX against the given backend to know if this is
     # considered a compliant license or not.
-    registry = complic.backend.artifactory.Registry('', '', '')
+    registry = complic.backend.artifactory.Registry(config)
 
     license_identifiers = {}
     unknown_licenses = {}
-    for dep_scanner in scanners:
-        for dependency in dep_scanner.scan(complic.utils.fs.Find(args.directory).files):
-            for license in dependency.licenses:
+    for scanner in get_scanners():
+        for dependency in scanner.scan(complic.utils.fs.Find(args.directory).files):
+            for license_string in dependency.licenses:
                 try:
-                    name = spdx.match(license)
+                    name = spdx.match(license_string)
                     if not name in license_identifiers:
                         license_identifiers[name] = set()
                     license_identifiers[name].add(dependency.identifier)
                 except complic.backend.exceptions.UnknownLicenseError:
-                    if not license in unknown_licenses:
-                        unknown_licenses[license] = set()
-                    unknown_licenses[license].add(dependency.identifier)
+                    if not license_string in unknown_licenses:
+                        unknown_licenses[license_string] = set()
+                    unknown_licenses[license_string].add(dependency.identifier)
 
     for lic, apps in unknown_licenses.items():
         logging.warning("Apps using unknown license (%s): %i", lic, len(apps))

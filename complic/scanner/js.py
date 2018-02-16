@@ -1,14 +1,26 @@
 #!/usr/bin/env python
+"""
+    Scan all package.json files.
+"""
 
 import logging
 import json
 import re
-import os
 
 import complic.scanner.base
 
 
 class Scanner(complic.scanner.base.Scanner):
+    """Scan all package.json files.
+
+    The solution is not very complete. Unless the project has been built
+    before (with a full tree of node_modules), the information won't be
+    reliable at all.
+
+    Ideally, we would connect to the npm registry itself and download the
+    information in case we can't find the package in the node_modules
+    directory (of either the project or in the local cache (~/.)).
+    """
 
     def __init__(self):
         super(Scanner, self).__init__()
@@ -18,7 +30,9 @@ class Scanner(complic.scanner.base.Scanner):
 
     @staticmethod
     def handle_pkgjson(file_path):
-        logging.debug("Matched package.json handler: %s", file_path)
+        """Handles package.json file.
+
+        If any parsing errores are found, an empty list is returned."""
 
         try:
             pkgjson = json.loads(open(file_path, 'r').read())
@@ -28,17 +42,35 @@ class Scanner(complic.scanner.base.Scanner):
 
         name = pkgjson.get('name', '<none>')
         version = pkgjson.get('version', '<none>')
-
-        dependency = complic.scanner.base.Dependency(file_path)
-        dependency.identifier = 'js:' + name + ':' + version
-
+        licenses = set()
         for lic in Scanner.get_licenses(pkgjson):
-            dependency.licenses.add(lic)
+            licenses.add(lic)
+        pkgjson['licenses'] = licenses
+
+        dependency = complic.scanner.base.Dependency(**pkgjson)
+        dependency.identifier = 'js:' + name + ':' + version
 
         return [dependency]
 
     @staticmethod
     def get_licenses(pkgjson):
+        """Extract the license information from the package.json.
+
+        What should be a trivial task isn't because that field isn't
+        normalized at all and may be formatted differently.
+
+        We account for the following formats:
+            - "license": "BSD"
+
+            - "license": ["BSD"]
+
+            - "license": [
+                  {
+                      "type": "BSD",
+                      "url": "http://..."
+                  }
+              ]
+        """
         lics = []
         # Normalize the naming if required
         if 'licenses' in pkgjson.keys():
@@ -49,9 +81,8 @@ class Scanner(complic.scanner.base.Scanner):
                 pkgjson['license'] = [pkgjson['license']]
 
             for lic in pkgjson['license']:
-                if isinstance(lic, str) or isinstance(lic, unicode):
+                if isinstance(lic, (str, unicode)):
                     lics.append(lic)
                 else:
                     lics.append(lic['type'])
         return lics
-
