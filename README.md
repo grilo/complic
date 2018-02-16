@@ -34,14 +34,14 @@ Alternatives:
   * https://github.com/fossology/fossology (nomos)
   * https://wiki.debian.org/CopyrightReviewTools
 
-Other tools have pretty exhaustive scan methods and detection heuristics. They
-should be your first choice always.
+Other tools have pretty exhaustive scan methods and detection heuristics. Some
+even have built-in license management. They should be your first choice always.
 
 `complic` only queries the application's package manager (multiple packages per
 project are supported, though) for licensing information regarding all of its
 dependencies.
 
 The end result is a much faster execution time (a couple of minutes for
-medium-sized projects) with a very high degree of reliability. Which is only
-only possible if the maintainers of the dependencies your project uses are
-careful enough to populate their package's metadata with such information.
+medium-sized projects) with a very high degree of reliability. This is only
+only possible if the maintainers of your project's dependencies are careful
+enough to populate their package's metadata with such information.
