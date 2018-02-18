@@ -5,7 +5,7 @@ import SimpleHTTPServer
 import SocketServer
 
 port = 8080
-response_path = os.path.join(os.path.abspath(__file__), 'response.json')
+response_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'response.json')
 
 
 class LicenseHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
@@ -16,4 +16,5 @@ class LicenseHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(open(response_path).read())
 
+print "Running http server on port:", port
 SocketServer.TCPServer(("", port), LicenseHandler).serve_forever()
