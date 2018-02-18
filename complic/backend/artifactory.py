@@ -25,23 +25,12 @@ import os
 
 import requests
 
-import complic.utils.cache
 import complic.backend.exceptions
 
 
-class Cache(complic.utils.cache.File):
-    """Cache the REST call."""
+def get_licenses(url, uname, passwd):
+    return requests.get(url, auth=(uname, passwd)).json()
 
-    def __init__(self, directory, url, uname, passwd):
-        """The default endpoint used to retrieve licensing information is
-        not actually documented."""
-        super(Cache, self).__init__(directory)
-        self.url = url
-        self.uname = uname
-        self.passwd = passwd
-
-    def refresh(self):
-        return requests.get(self.url, auth=(self.uname, self.passwd)).text
 
 class Registry(object):
     """Returns all Artifactory licenses, built-in cache mechanism.
@@ -54,12 +43,11 @@ class Registry(object):
     def __init__(self, config):
         super(Registry, self).__init__()
         self.config = config
-        self.cache = {}
-        for lic in json.loads(Cache(os.path.join(config.config_dir, 'artifactory'),
-                                    config.ARTIFACTORY_ENDPOINT,
-                                    config.ARTIFACTORY_USERNAME,
-                                    config.ARTIFACTORY_PASSWORD).get()):
-            self.cache[lic['name']] = lic['approved']
+        self.licenses = {}
+        for lic in get_licenses(config.ARTIFACTORY_ENDPOINT,
+                                config.ARTIFACTORY_USERNAME,
+                                config.ARTIFACTORY_PASSWORD):
+            self.licenses[lic['name']] = lic['approved']
 
     def is_approved(self, license_string):
         """
@@ -75,9 +63,9 @@ class Registry(object):
                 >>> is_approved('AGPL')
                 False
         """
-        if license_string not in self.cache.keys():
+        if license_string not in self.licenses.keys():
             raise complic.backend.exceptions.UnknownLicenseError
-        return self.cache[license_string]
+        return self.licenses[license_string]
 
 
 class SPDX(object):
@@ -89,13 +77,10 @@ class SPDX(object):
 
     def __init__(self, config):
         super(SPDX, self).__init__()
-        self.cache = json.loads(Cache(os.path.join(config.config_dir, 'artifactory'),
-                                      config.ARTIFACTORY_ENDPOINT,
-                                      config.ARTIFACTORY_USERNAME,
-                                      config.ARTIFACTORY_PASSWORD).get())
-        # Build regex list
         self.licenses = {}
-        for lic in self.cache:
+        for lic in get_licenses(config.ARTIFACTORY_ENDPOINT,
+                                config.ARTIFACTORY_USERNAME,
+                                config.ARTIFACTORY_PASSWORD)
             regex = lic.get('regexp', None)
             if regex:
                 self.licenses[lic['name']] = {

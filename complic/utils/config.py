@@ -18,7 +18,7 @@ class Manager(object):
     def __init__(self):
         default = {
             'artifactory': {
-                'endpoint': 'https://artifactory:8080/artifactory/ui/licenses/crud',
+                'endpoint': 'http://localhost:8080/artifactory/ui/licenses/crud',
                 'username': 'admin',
                 'password': 'admin',
             },
