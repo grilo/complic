@@ -43,7 +43,7 @@ class Scanner(complic.scanner.base.Scanner):
 
         if not os.path.isfile(thirdparty):
             command = "mvn org.codehaus.mojo:license-maven-plugin:1.13"
-            command += ":aggregate-add-third-party -q -U -B -f %s" % (file_path)
+            command += ":add-third-party -q -U -B -f %s" % (file_path)
             try:
                 logging.info("Running license-mvn-plugin on: %s", file_path)
                 subprocess.check_call(shlex.split(command))
