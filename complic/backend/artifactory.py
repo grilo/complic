@@ -21,6 +21,7 @@ The backend contract is:
 import logging
 import re
 import json
+import os
 
 import requests
 
@@ -31,10 +32,10 @@ import complic.backend.exceptions
 class Cache(complic.utils.cache.File):
     """Cache the REST call."""
 
-    def __init__(self, url, uname, passwd):
+    def __init__(self, directory, url, uname, passwd):
         """The default endpoint used to retrieve licensing information is
         not actually documented."""
-        super(Cache, self).__init__('artifactory')
+        super(Cache, self).__init__(directory)
         self.url = url
         self.uname = uname
         self.passwd = passwd
@@ -54,7 +55,8 @@ class Registry(object):
         super(Registry, self).__init__()
         self.config = config
         self.cache = {}
-        for lic in json.loads(Cache(config.ARTIFACTORY_ENDPOINT,
+        for lic in json.loads(Cache(os.path.join(config.config_dir, 'artifactory'),
+                                    config.ARTIFACTORY_ENDPOINT,
                                     config.ARTIFACTORY_USERNAME,
                                     config.ARTIFACTORY_PASSWORD).get()):
             self.cache[lic['name']] = lic['approved']
@@ -87,7 +89,8 @@ class SPDX(object):
 
     def __init__(self, config):
         super(SPDX, self).__init__()
-        self.cache = json.loads(Cache(config.ARTIFACTORY_ENDPOINT,
+        self.cache = json.loads(Cache(os.path.join(config.config_dir, 'artifactory'),
+                                      config.ARTIFACTORY_ENDPOINT,
                                       config.ARTIFACTORY_USERNAME,
                                       config.ARTIFACTORY_PASSWORD).get())
         # Build regex list

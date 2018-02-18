@@ -14,13 +14,110 @@ import re
 import os
 import zipfile
 import tarfile
+import shlex
 import subprocess
-import pkg_resources
+from pip._vendor import pkg_resources # pylint: disable=no-name-in-module
 import setuptools.sandbox
 
 import complic.scanner.base
 import complic.utils.fs
-import complic.utils.dictionary
+
+
+class Metadata(object):
+    """Represents a generic python package."""
+
+    @staticmethod
+    def from_archive(path):
+        """Support for both eggs and wheels."""
+        if path.endswith('.tar.gz'):
+            return Metadata.from_egg(path)
+        elif path.endswith('.whl'):
+            return Metadata.from_wheel(path)
+
+    @staticmethod
+    def from_wheel(wheel_path):
+        """Extract all the metadata from a wheel archive.
+
+        Returns a Metadata."""
+        archive = zipfile.ZipFile(wheel_path)
+        meta, reqs = '', ''
+        for path in archive.namelist():
+            if path.endswith('dist-info/METADATA'):
+                meta = archive.open(path).read()
+            elif path.endswith('dist-info/requires.txt'):
+                reqs = archive.open(path).read()
+        return Metadata(meta, reqs)
+
+    @staticmethod
+    def from_egg(egg_path):
+        """Extract all the metadata from an egg archive.
+
+        Returns a Metadata."""
+        archive = tarfile.open(egg_path)
+        meta, reqs = '', ''
+        for path in archive.getnames():
+            # Some really old packages might not even have egg-info/META
+            if path.endswith('PKG-INFO'):
+                meta = archive.extractfile(path).read()
+            elif path.endswith('requires.txt'):
+                reqs = archive.extractfile(path).read()
+        return Metadata(meta, reqs)
+
+    @staticmethod
+    def from_setuppy(setup_path):
+        """Generate a wheel binary distribution from a setup.py.
+
+        Returns a Metadata."""
+
+        log_level = logging.getLogger().level
+        logging.getLogger().setLevel(50)
+        try:
+            setuptools.sandbox.run_setup(setup_path, ['-q', 'bdist_wheel'])
+        except:
+            raise IOError("Unable to correctly parse: %s" % (setup_path))
+        finally:
+            logging.getLogger().setLevel(log_level)
+        basedir = os.path.join(os.path.dirname(setup_path), 'dist')
+        regex = re.compile(basedir + r'.*\.whl')
+        for path in complic.utils.fs.Find(basedir).files:
+            if regex.match(path):
+                return Metadata.from_wheel(path)
+
+    def __init__(self, meta, requires=''):
+        """Simplest way of parsing the metadata.
+
+        The existing functions in wheel, pip and whatever just make the code
+        much bigger due to all the different use cases they throw at us.
+        """
+        if not meta:
+            raise AttributeError
+        info = {}
+        regex_name = re.compile(r'^Name: (.*).*$', flags=re.MULTILINE)
+        regex_ver = re.compile(r'^Version: (.*).*$', flags=re.MULTILINE)
+        regex_lic = re.compile(r'^License: (.*)$', flags=re.MULTILINE)
+        regex_req = re.compile(r'^Requires.*: ([A-Za-z0-9_\-\.]+).*$',
+                               flags=re.MULTILINE)
+        info['name'] = regex_name.search(meta).group(1)
+        info['version'] = regex_ver.search(meta).group(1)
+        info['license'] = regex_lic.search(meta).group(1)
+        info['identifier'] = 'py:' + info['name'] + ':' + info['version']
+
+        info['requirements'] = []
+        for req in regex_req.findall(meta):
+            info['requirements'].append(pkg_resources.Requirement.parse(req))
+        for req in requires.splitlines():
+            if req and not req.startswith('['):
+                info['requirements'].append(pkg_resources.Requirement.parse(req))
+        self.info = info
+
+    def __getattr__(self, key):
+        return self.info[key]
+
+    def __getitem__(self, key):
+        return self.info[key]
+
+    def to_dict(self):
+        return self.info
 
 
 class Scanner(complic.scanner.base.Scanner):
@@ -33,153 +130,109 @@ class Scanner(complic.scanner.base.Scanner):
     different licenses for each one.
     """
 
-    @staticmethod
-    def parse_metadata(meta):
-        """Yay for weird formats."""
-        regex_name = re.compile(r'^Name: (.*).*$', flags=re.MULTILINE)
-        regex_vers = re.compile(r'^Version: (.*).*$', flags=re.MULTILINE)
-        regex_lic = re.compile(r'^License: (.*)$', flags=re.MULTILINE)
-        regex_req = re.compile(r'^Requires.*: ([A-Za-z0-9_\-\.]+).*$', flags=re.MULTILINE)
-        info = {}
-        info['name'] = regex_name.search(meta).group(1)
-        info['version'] = regex_vers.search(meta).group(1)
-        info['license'] = regex_lic.search(meta).group(1)
-        info['requirements'] = set()
-
-        for match in regex_req.findall(meta):
-            info['requirements'].add(Scanner.without_version(match))
-
-        info['identifier'] = info['name'] + ':' + info['version']
-
-        return info
-
-    @staticmethod
-    def without_version(requires_line):
-        """Removes the versioning stuff from a "requirements string".
-
-        Example:
-            >>> without_version("lambda>=1.0")
-            lambda
-        """
-        regex = re.compile(r'^([A-Za-z0-9_\-\.]+).*$')
-        match = regex.search(requires_line)
-        return match.group(1)
-
-    @staticmethod
-    def __get_metadata(archive):
-        """
-            Handle both python package formats. We except a single metadata
-            file in either of them.
-        """
-        if archive.endswith('.whl'):
-            wheel = zipfile.ZipFile(archive)
-            for compressed_file in wheel.namelist():
-                if compressed_file.endswith('METADATA'):
-                    return wheel.open(compressed_file, 'r').read()
-        elif archive.endswith('gz'):
-            tarball = tarfile.open(archive)
-            for compressed_file in tarball.getnames():
-                if compressed_file.endswith('PKG-INFO'):
-                    return tarball.extractfile(compressed_file).read()
-        return ''
-
-    @staticmethod
-    def __download(pkgname):
-        old_dir = os.getcwd()
-        with complic.utils.fs.TemporaryDirectory() as tmp:
-            os.chdir(tmp)
-            logging.debug("Downloading package and dependencies: %s", pkgname)
-            # Running pip with -q messes with our logs
-            # See: https://stackoverflow.com/questions/38754432
-            log_level = logging.getLogger().level
-            process = subprocess.Popen(["pip", "-q", "download", pkgname],
-                                       shell=False,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-            process.wait()
-
-            logging.getLogger().setLevel(log_level)
-            for archive in complic.utils.fs.Find(tmp).files:
-                metadata = Scanner.parse_metadata(Scanner.__get_metadata(archive))
-                yield metadata
-        os.chdir(old_dir)
-
     def __init__(self):
         super(Scanner, self).__init__()
 
         self.register_handler(re.compile(r'.*/setup.py$'),
                               self.handle_setuppy)
 
-        self.pkgdb = complic.utils.dictionary.LowerCase()
-        for dist in pkg_resources.working_set: # pylint: disable=not-an-iterable
-            for metafile in ['PKG-INFO', 'METADATA']:
-                if dist.has_metadata(metafile):
-                    metadata = Scanner.parse_metadata(dist.get_metadata(metafile))
-            self.pkgdb[metadata['name']] = metadata
+    @staticmethod
+    def __download(requirement):
+        """Download a package if not already present."""
 
-    def __deptree(self, pkgname, dependencies):
+        cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()),
+                                 '.complic', 'scanner', 'python')
 
-        pkgname = pkgname.replace('-', '_')
+        def find_cache(name):
+            """Very basic caching mechanism."""
+            safereq = name.replace('-', '.')
+            regex = re.compile(cache_dir + '.' + safereq + r'\-.*(\.tar\.gz|\.whl)', re.IGNORECASE)
+            for path in complic.utils.fs.Find(cache_dir).files:
+                if regex.match(path):
+                    return path
 
-        if pkgname in dependencies:
-            return {}
+        cache = find_cache(requirement.name)
+        if not cache:
+            logging.debug("Downloading package: %s", requirement.name)
+            # Running pip with -q messes with our logs
+            # See: https://stackoverflow.com/questions/38754432
+            log_level = logging.getLogger().level
+            cmd = "pip -q download --no-deps -d " + cache_dir + " " + requirement.name
+            process = subprocess.Popen(shlex.split(cmd),
+                                       shell=False,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE)
+            process.wait()
+            logging.getLogger().setLevel(log_level)
+            cache = find_cache(requirement.name)
+            if not cache:
+                raise IOError
+        return cache
 
-        if pkgname not in self.pkgdb:
-            logging.debug("No local metadata for dependency: %s", pkgname)
-            for metadata in Scanner.__download(pkgname):
-                self.pkgdb[metadata['name']] = metadata
+    def build_tree(self, pkg, cyclic_path):
+        """Generate a dependency tree.
 
-        metadata = self.pkgdb[pkgname]
-
-        dep = complic.scanner.base.Dependency(**metadata)
-        dep.identifier = 'python:' + metadata['identifier']
-        dep.licenses.add(metadata['license'])
-        dependencies[dep.identifier] = dep
-
-        for req in metadata['requirements']:
-            dependencies.update(self.__deptree(req, dependencies))
+        Recursively identify and download the requirements. We do this to
+        have access to the License fields from each package's metadata.
+        """
+        dependencies = {}
+        cyclic_path.append(pkg['name'])
+        for req in pkg['requirements']:
+            if req.name in cyclic_path:
+                continue
+            try:
+                meta = Metadata.from_archive(Scanner.__download(req))
+                dependencies[meta] = self.build_tree(meta, cyclic_path)
+            except IOError:
+                logging.debug("Unable to download: %s", req.name)
+            except AttributeError:
+                logging.debug("Unable to parse metadata: %s", req.name)
+            finally:
+                cyclic_path.append(req.name)
         return dependencies
 
+    def flatten_tree(self, tree):
+        """
+            Transform:
+                'hello': {
+                    'world': {},
+                }
+            Into:
+                ['hello', 'world']
+        """
+        values = set()
+        for trunk, leaves in tree.items():
+            values.add(trunk)
+            for leaf in self.flatten_tree(leaves):
+                values.add(leaf)
+        return values
+
     def handle_setuppy(self, file_path):
-        """For each setup.py we get its requirements.
+        """Run the setup script and parse its requirements (dependencies).
 
-        To get a reliable requirements list we actually have to run the
-        setup script fully. We have the sandbox method, though I have
-        doubts whether it's really sandboxed or not.
+        We build our own dependency tree and then flatten it before returning.
 
-        Still, we then handle each of those requirements, see if there
-        is local information of that requirement and, if not, we download
-        it using pip. Do it recursively until we're able to return a flat
-        list of dependencies."""
+        The initial implementation was using python's infrastructure for
+        package handling, but the plumbing is dreadful and the API completely
+        unusable. So we opted to build our own.
+        """
         logging.debug("Matched setup.py handler: %s", file_path)
 
         file_path = os.path.abspath(file_path)
 
-        # Generate a <package>.egg-info/PKG-INFO which we can parse
-        setuptools.sandbox.run_setup(file_path, ['-q', 'egg_info'])
+        try:
+            pkg = Metadata.from_setuppy(file_path)
+        except IOError:
+            return []
 
-        metadata = {}
-        for path in complic.utils.fs.Find(os.path.dirname(file_path)).files:
-            if path.endswith('PKG-INFO') or path.endswith('METADATA'):
-                metadata.update(Scanner.parse_metadata(open(path, 'r').read()))
+        dependency_tree = {}
+        dependency_tree[pkg] = self.build_tree(pkg, [])
 
-        for path in complic.utils.fs.Find(os.path.dirname(file_path)).files:
-            if path.endswith('requires.txt'):
-                for line in open(path, 'r').read().splitlines():
-                    metadata['requirements'].add(Scanner.without_version(line))
-
-        # We now have the initial requirements. Run through all of
-        # them recursively to find out their respective licenses.
         dependencies = {}
-        for req in metadata['requirements']:
-            dependencies.update(self.__deptree(req, dependencies))
-
-        # In case multiple versions of the same dependency have different
-        # licenses, we capture them all.
-        for dependency in dependencies.values():
-            lics = set()
-            for lic in dependency.licenses:
-                lics.add(lic)
-            dependency.licenses = lics
+        for leaf in self.flatten_tree(dependency_tree):
+            dep = complic.scanner.base.Dependency(**leaf.to_dict())
+            dep.licenses = set()
+            dep.licenses.add(leaf.license)
+            dependencies[dep.identifier] = dep
 
         return dependencies.values()

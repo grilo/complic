@@ -9,30 +9,6 @@ import tempfile
 import os
 
 
-class TemporaryDirectory(object):
-    """Create and return a temporary directory.  This has the same
-    behavior as mkdtemp but can be used as a context manager.  For
-    example:
-        with TemporaryDirectory() as tmpdir:
-            ...
-    Upon exiting the context, the directory and everything contained
-    in it are removed.
-    """
-
-    def __init__(self, suffix='', prefix='tmp', directory=None):
-        self.name = tempfile.mkdtemp(suffix, prefix, directory)
-
-    def __repr__(self):
-        return "<%s %s>" % (self.__class__.__name__, self.name)
-
-    def __enter__(self):
-        return self.name
-
-    def __exit__(self, exc, value, traceback):
-        logging.debug("Removing temporary directory: %s", self.name)
-        shutil.rmtree(self.name)
-
-
 class Find(object):
     """Traverse the filesystem and build file and directory lists.
 

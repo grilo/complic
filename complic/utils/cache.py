@@ -19,11 +19,9 @@ class File(object):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, name='default'):
-        self.cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()),
-                                      '.complic',
-                                      name)
-        self.cache_ttl = 15811200  # Seconds
+    def __init__(self, cache_dir):
+        self.cache_dir = cache_dir
+        self.cache_ttl = 15811200 # Seconds
         self.contents = {}
 
     @abc.abstractmethod

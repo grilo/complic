@@ -44,7 +44,7 @@ class Scanner(object):
                     continue
                 for dependency in handler(path):
                     dependencies.append(dependency)
-        logging.info("Apps found: %i", len(dependencies))
+        logging.info("Dependencies collected: %i", len(dependencies))
         return dependencies
 
 
@@ -67,22 +67,11 @@ class Dependency(object):
 
     @property
     def identifier(self):
-        """The module identifier.
-
-            Example:
-                >>> dependency.identifier
-                java:org.spring.boot:1.0.0
-
-                >>> dependency.identifier
-                python:requests:1.0.1a
-        """
-        if not self._id:
-            return self._path # pylint: disable=no-member
-        return self._id
+        return self._identifier
 
     @identifier.setter
     def identifier(self, value):
-        self._id = value # pylint: disable=attribute-defined-outside-init
+        self._identifier = value
 
     @property
     def licenses(self):
@@ -98,11 +87,11 @@ class Dependency(object):
     def licenses(self, value):
         self._licenses = value
 
+    def __getattr__(self, key):
+        return self.__dict__['_' + key]
+
     def __repr__(self):
-        try:
-            getattr(self, 'licenses')
-        except AttributeError:
-            print self._path # pylint: disable=no-member
-        if not self.licenses:
-            return 'Unknown'
-        return ','.join(self.licenses)
+        lics = set('Unknown')
+        if self.licenses:
+            lics = self.licenses
+        return self.identifier + " " + ','.join(lics)

@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-"""
-Configuration manager.
-"""
+"""Configuration manager."""
 
 import ConfigParser
 import os
@@ -25,9 +23,8 @@ class Manager(object):
                 'password': 'admin',
             },
         }
-        config_file = os.path.join(os.environ.get("HOME", os.getcwd()),
-                                   '.complic',
-                                   'site.cfg')
+        config_dir = os.path.join(os.environ.get("HOME", os.getcwd()), '.complic')
+        config_file = os.path.join(config_dir, 'site.cfg')
         config_parser = ConfigParser.SafeConfigParser()
         if os.path.isfile(config_file):
             logging.info("Found config file: %s", config_file)

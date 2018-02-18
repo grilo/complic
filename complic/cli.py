@@ -79,7 +79,7 @@ def main():
                     unknown_licenses[license_string].add(dependency.identifier)
 
     for lic, apps in unknown_licenses.items():
-        logging.warning("Apps using unknown license (%s): %i", lic, len(apps))
+        logging.warning("Dependencies using unknown license (%s): %i", lic, len(apps))
 
     # For every non-compliant license, the application will exit with the
     # code 1 + <non-compliant license count>. Exit code 1 is reserved for
@@ -87,10 +87,10 @@ def main():
     not_approved = 0
     for name, apps in license_identifiers.items():
         if registry.is_approved(name):
-            logging.info("Apps using approved license (%s): %i", name, len(apps))
+            logging.info("Dependencies using approved license (%s): %i", name, len(apps))
         else:
             not_approved += 1
-            logging.error("Apps using unapproved license (%s): %i", name, len(apps))
+            logging.error("Dependencies using unapproved license (%s): %i", name, len(apps))
 
     sys.exit(not_approved + 1)
 
