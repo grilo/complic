@@ -45,7 +45,7 @@ class Scanner(complic.scanner.base.Scanner):
         licenses = set()
         for lic in Scanner.get_licenses(pkgjson):
             licenses.add(lic)
-        pkgjson['licenses'] = licenses
+        pkgjson['licenses'] = set(licenses)
 
         dependency = complic.scanner.base.Dependency(**pkgjson)
         dependency.identifier = 'js:' + name + ':' + version
@@ -58,6 +58,8 @@ class Scanner(complic.scanner.base.Scanner):
 
         What should be a trivial task isn't because that field isn't
         normalized at all and may be formatted differently.
+
+        This is considered legacy: https://docs.npmjs.com/files/package.json
 
         We account for the following formats:
             - "license": "BSD"

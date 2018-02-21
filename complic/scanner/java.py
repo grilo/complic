@@ -10,6 +10,7 @@ import subprocess
 import shlex
 
 import complic.scanner.base
+import complic.utils.fs
 
 
 class Scanner(complic.scanner.base.Scanner):
@@ -25,7 +26,6 @@ class Scanner(complic.scanner.base.Scanner):
         self.register_handler(re.compile(r'.*/pom.xml$'),
                               Scanner.handle_pom)
 
-
     @staticmethod
     def handle_pom(file_path):
         """The licensing plugin which does all the hard work for us.
@@ -35,23 +35,20 @@ class Scanner(complic.scanner.base.Scanner):
 
         logging.debug("Matched pom handler: %s", file_path)
 
-        thirdparty = os.path.join(os.path.dirname(file_path),
-                                  'target',
-                                  'generated-sources',
-                                  'license',
-                                  'THIRD-PARTY.txt')
+        command = "mvn org.codehaus.mojo:license-maven-plugin:1.13"
+        command += ":add-third-party -q -B -f %s" % (file_path)
+        try:
+            logging.info("Running license-mvn-plugin on: %s", file_path)
+            subprocess.check_call(shlex.split(command))
+        except subprocess.CalledProcessError:
+            logging.error("Something went wrong when running: %s", command)
+            return []
 
-        if not os.path.isfile(thirdparty):
-            command = "mvn org.codehaus.mojo:license-maven-plugin:1.13"
-            command += ":add-third-party -q -U -B -f %s" % (file_path)
-            try:
-                logging.info("Running license-mvn-plugin on: %s", file_path)
-                subprocess.check_call(shlex.split(command))
-            except subprocess.CalledProcessError:
-                logging.error("Something went wrong when running: %s", command)
-                return []
-
-        return Scanner.parse_thirdparty(thirdparty)
+        deps = []
+        for path in complic.utils.fs.Find(os.path.dirname(file_path)).files:
+            if path.endswith('THIRD-PARTY.txt'):
+                deps.extend(Scanner.parse_thirdparty(path))
+        return deps
 
     @staticmethod
     def parse_thirdparty(thirdparty):
@@ -81,5 +78,5 @@ class Scanner(complic.scanner.base.Scanner):
 
             dependencies.append(dependency)
 
-        logging.info("Collected (%i) dependencies.", len(dependencies))
+        logging.debug("Dependencies found: %i", len(dependencies))
         return dependencies

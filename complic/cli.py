@@ -7,6 +7,8 @@ import logging
 import argparse
 import os
 import sys
+import json
+import datetime
 
 import complic.utils.fs
 import complic.utils.config
@@ -28,18 +30,109 @@ def get_scanners():
         complic.scanner.python.Scanner(),
     ]
 
-def main():
-    """Make the linter happy."""
+def get_meta(license_report):
+    # Generate the following map:
+    #   {
+    #       'approved': 0,
+    #       'not_approved': 0,
+    #       'uknown': 0,
+    #       'dependencies': 0,
+    #       'evidence': 'On the 30th a scan was performed.',
+    #   }
+    meta = {
+        'approved': 0,
+        'not_approved': 0,
+        'unknown': 0,
+        'dependencies': 0,
+        'evidence': '',
+    }
 
-    desc = "Collect licensing information from package managers (mvn, npm, pypi, etc.)."
+    for name, values in license_report.items():
+        if values['approved'] is None:
+            meta['unknown'] += 1
+        elif values['approved']:
+            meta['approved'] += 1
+        else:
+            meta['not_approved'] += 1
+        meta['dependencies'] += len(values['dependencies'])
+
+    today = datetime.date.today().strftime('%d %b %Y')
+    meta['evidence'] = "On %s, a license analysis was performed," % (today)
+    meta['evidence'] += " of project (%s), finding" % (args.directory)
+    meta['evidence'] += " %i unique dependencies." % (meta['dependencies'])
+    meta['evidence'] += " Detected %i licenses," % (len(license_report))
+    meta['evidence'] += " having %i approved," % (meta['approved'])
+    meta['evidence'] += " %i not approved and" % (meta['not_approved'])
+    meta['evidence'] += " %i unknown." % (meta['unknown'])
+
+    return meta
+
+
+def main(directory):
+    """Finds all dependencies and corresponding licenses in a given directory.
+
+    Returns a dictionary containing:
+         {
+            '<license_spdx>': {
+                'approved': True|False|None
+                'dependencies': [ 'dependency1', 'dependency2' ]
+         }
+    'approved': None :: license is unknown to the SPDX matcher engine
+
+    SPDX is a fancy name for a license's unique identifier:
+        https://spdx.org/
+    Example:
+        String: Mozilla Public License:
+        SPDX: MPL
+    """
+
+    config = complic.utils.config.Manager()
+
+    # Matches strings to a SPDX
+    spdx = complic.backend.artifactory.SPDX(config)
+
+    # Contains the info whether a given SPDX is compliant or not
+    registry = complic.backend.artifactory.Registry(config)
+
+    # Generate the following map:
+    # {
+    #   '<license_spdx>': {
+    #       'approved': True|False|None
+    #       'dependencies': [ 'dependency1', 'dependency2' ]
+    #   }
+
+    license_report = {}
+    for scanner in get_scanners():
+        for dependency in scanner.scan(complic.utils.fs.Find(directory).files):
+            for license_string in dependency.licenses:
+                name = license_string
+                approved = None
+                try:
+                    name = spdx.match(license_string)
+                    approved = registry.is_approved(name)
+                except complic.backend.exceptions.UnknownLicenseError:
+                    pass
+
+                if not name in license_report:
+                    license_report[name] = {
+                        'approved': approved,
+                        'dependencies': [],
+                    }
+                if not dependency.identifier in license_report[name]['dependencies']:
+                    license_report[name]['dependencies'].append(dependency.identifier)
+
+    return license_report
+
+
+if __name__ == '__main__':
+    desc = "Collect licensing information from package managers (mvn, npm, \
+            pypi, etc.) and generate a complic-report.json with the results."
     parser = argparse.ArgumentParser(description=desc)
 
     parser.add_argument("-v", "--verbose", action="store_true", \
         help="Increase output verbosity")
     parser.add_argument("-d", "--directory", default=os.getcwd(), \
         help="The directory to scan.")
-    parser.add_argument("-r", "--report", \
-        help="Writes to <:param:> a report in json format.")
 
     args = parser.parse_args()
 
@@ -53,46 +146,15 @@ def main():
         logging.critical("Specified parameter directory doesn't look like one: %s", args.directory)
         sys.exit(1)
 
-    config = complic.utils.config.Manager()
+    report_path = os.path.join(args.directory, 'complic-report.json')
+    license_report = main(args.directory)
+    meta_report = get_meta(license_report)
 
-    # We then take that legal blurb and try to find the best SPDX matching
-    # designation.
-    spdx = complic.backend.artifactory.SPDX(config)
+    logging.info("Writing complic report to: %s", report_path)
+    with open(report_path, 'w') as report_file:
+        report_file.write(json.dumps(license_report))
 
-    # We then run that SPDX against the given backend to know if this is
-    # considered a compliant license or not.
-    registry = complic.backend.artifactory.Registry(config)
+    logging.info(meta_report['evidence'])
 
-    license_identifiers = {}
-    unknown_licenses = {}
-    for scanner in get_scanners():
-        for dependency in scanner.scan(complic.utils.fs.Find(args.directory).files):
-            for license_string in dependency.licenses:
-                try:
-                    name = spdx.match(license_string)
-                    if not name in license_identifiers:
-                        license_identifiers[name] = set()
-                    license_identifiers[name].add(dependency.identifier)
-                except complic.backend.exceptions.UnknownLicenseError:
-                    if not license_string in unknown_licenses:
-                        unknown_licenses[license_string] = set()
-                    unknown_licenses[license_string].add(dependency.identifier)
-
-    for lic, apps in unknown_licenses.items():
-        logging.warning("Dependencies using unknown license (%s): %i", lic, len(apps))
-
-    # For every non-compliant license, the application will exit with the
-    # code 1 + <non-compliant license count>. Exit code 1 is reserved for
-    # internal application errors.
-    not_approved = 0
-    for name, apps in license_identifiers.items():
-        if registry.is_approved(name):
-            logging.info("Dependencies using approved license (%s): %i", name, len(apps))
-        else:
-            not_approved += 1
-            logging.error("Dependencies using unapproved license (%s): %i", name, len(apps))
-
-    sys.exit(not_approved + 1)
-
-if __name__ == '__main__':
-    main()
+    if meta_report['not_approved'] > 0:
+        sys.exit(meta_report['not_approved'] + 1)

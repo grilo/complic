@@ -80,7 +80,7 @@ class SPDX(object):
         self.licenses = {}
         for lic in get_licenses(config.ARTIFACTORY_ENDPOINT,
                                 config.ARTIFACTORY_USERNAME,
-                                config.ARTIFACTORY_PASSWORD)
+                                config.ARTIFACTORY_PASSWORD):
             regex = lic.get('regexp', None)
             if regex:
                 self.licenses[lic['name']] = {
