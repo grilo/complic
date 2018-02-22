@@ -11,6 +11,7 @@ import shlex
 
 import complic.scanner.base
 import complic.utils.fs
+import complic.utils.shell
 
 
 class Scanner(complic.scanner.base.Scanner):
@@ -37,11 +38,9 @@ class Scanner(complic.scanner.base.Scanner):
 
         command = "mvn org.codehaus.mojo:license-maven-plugin:1.13"
         command += ":add-third-party -q -B -f %s" % (file_path)
-        try:
-            logging.info("Running license-mvn-plugin on: %s", file_path)
-            subprocess.check_call(shlex.split(command))
-        except subprocess.CalledProcessError:
-            logging.error("Something went wrong when running: %s", command)
+        logging.info("Running license-mvn-plugin on: %s", file_path)
+        rc, out, err = complic.utils.shell.cmd(command)
+        if rc != 0:
             return []
 
         deps = []

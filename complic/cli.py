@@ -30,7 +30,7 @@ def get_scanners():
         complic.scanner.python.Scanner(),
     ]
 
-def get_meta(license_report):
+def get_meta(project_name, license_report):
     # Generate the following map:
     #   {
     #       'approved': 0,
@@ -58,7 +58,7 @@ def get_meta(license_report):
 
     today = datetime.date.today().strftime('%d %b %Y')
     meta['evidence'] = "On %s, a license analysis was performed," % (today)
-    meta['evidence'] += " of project (%s), finding" % (args.directory)
+    meta['evidence'] += " of project (%s), finding" % (project_name)
     meta['evidence'] += " %i unique dependencies." % (meta['dependencies'])
     meta['evidence'] += " Detected %i licenses," % (len(license_report))
     meta['evidence'] += " having %i approved," % (meta['approved'])
@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     report_path = os.path.join(args.directory, 'complic-report.json')
     license_report = main(args.directory)
-    meta_report = get_meta(license_report)
+    meta_report = get_meta(args.directory, license_report)
 
     logging.info("Writing complic report to: %s", report_path)
     with open(report_path, 'w') as report_file:
