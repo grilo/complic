@@ -26,9 +26,9 @@ def get_scanners():
         which contain, among other things, the legal blurb we need.
     """
     return [
-        #complic.scanner.java.Scanner(),
-        #complic.scanner.npm.Scanner(),
-        #complic.scanner.python.Scanner(),
+        complic.scanner.java.Scanner(),
+        complic.scanner.npm.Scanner(),
+        complic.scanner.python.Scanner(),
         complic.scanner.cocoapods.Scanner(),
     ]
 
