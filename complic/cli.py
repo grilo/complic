@@ -13,8 +13,9 @@ import datetime
 import complic.utils.fs
 import complic.utils.config
 import complic.scanner.java
-import complic.scanner.js
+import complic.scanner.npm
 import complic.scanner.python
+import complic.scanner.cocoapods
 import complic.backend.exceptions
 import complic.backend.artifactory
 
@@ -25,9 +26,10 @@ def get_scanners():
         which contain, among other things, the legal blurb we need.
     """
     return [
-        complic.scanner.java.Scanner(),
-        complic.scanner.js.Scanner(),
-        complic.scanner.python.Scanner(),
+        #complic.scanner.java.Scanner(),
+        #complic.scanner.npm.Scanner(),
+        #complic.scanner.python.Scanner(),
+        complic.scanner.cocoapods.Scanner(),
     ]
 
 def get_meta(project_name, license_report):
@@ -68,7 +70,7 @@ def get_meta(project_name, license_report):
     return meta
 
 
-def main(directory):
+def engine(directory):
     """Finds all dependencies and corresponding licenses in a given directory.
 
     Returns a dictionary containing:
@@ -124,7 +126,7 @@ def main(directory):
     return license_report
 
 
-if __name__ == '__main__':
+def main():
     desc = "Collect licensing information from package managers (mvn, npm, \
             pypi, etc.) and generate a complic-report.json with the results."
     parser = argparse.ArgumentParser(description=desc)
@@ -147,7 +149,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     report_path = os.path.join(args.directory, 'complic-report.json')
-    license_report = main(args.directory)
+    license_report = engine(args.directory)
     meta_report = get_meta(args.directory, license_report)
 
     logging.info("Writing complic report to: %s", report_path)
@@ -158,3 +160,7 @@ if __name__ == '__main__':
 
     if meta_report['not_approved'] > 0:
         sys.exit(meta_report['not_approved'] + 1)
+
+
+if __name__ == '__main__':
+    main()
