@@ -18,6 +18,7 @@ import complic.scanner.python
 import complic.scanner.cocoapods
 import complic.backend.exceptions
 import complic.backend.artifactory
+import complic.backend.compatibility
 
 
 def get_scanners():
@@ -122,6 +123,16 @@ def engine(directory):
                     }
                 if not dependency.identifier in license_report[name]['dependencies']:
                     license_report[name]['dependencies'].append(dependency.identifier)
+
+    lics = set()
+    for license in license_report.keys():
+        lics.add(license)
+
+    gpl_compat = complic.backend.compatibility.GPL()
+    if not gpl_compat.check(lics):
+        logging.warning("GPL incompatible Licenses found in: %s", name)
+    else:
+        logging.info("No GPL incompatible licenses found in: %s", directory)
 
     return license_report
 
