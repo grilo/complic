@@ -9,12 +9,13 @@ import os
 import subprocess
 import shlex
 
-import complic.scanner.base
 import complic.utils.fs
 import complic.utils.shell
 
+from . import base
 
-class Scanner(complic.scanner.base.Scanner):
+
+class Scanner(base.Scanner):
     """
         The handler looks for pom files. We then run the maven plugin
         which produces some THIRD-PARTY files which we will then parse
@@ -71,7 +72,7 @@ class Scanner(complic.scanner.base.Scanner):
             coords = coords.replace('(', '')
             url = url.replace(')', '')
 
-            dependency = complic.scanner.base.Dependency(**{'path': thirdparty})
+            dependency = base.Dependency(**{'path': thirdparty})
             dependency.identifier = 'java:' + coords
             dependency.licenses.add(license_string)
 

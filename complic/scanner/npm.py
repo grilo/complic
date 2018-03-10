@@ -7,10 +7,10 @@ import logging
 import json
 import re
 
-import complic.scanner.base
+from . import base
 
 
-class Scanner(complic.scanner.base.Scanner):
+class Scanner(base.Scanner):
     """Scan all package.json files.
 
     The solution is not very complete. Unless the project has been built
@@ -47,7 +47,7 @@ class Scanner(complic.scanner.base.Scanner):
             licenses.add(lic)
         pkgjson['licenses'] = set(licenses)
 
-        dependency = complic.scanner.base.Dependency(**pkgjson)
+        dependency = base.Dependency(**pkgjson)
         dependency.identifier = 'js:' + name + ':' + version
 
         return [dependency]

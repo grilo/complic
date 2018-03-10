@@ -7,10 +7,10 @@ import logging
 import json
 import re
 
-import complic.scanner.base
+from . import base
 
 
-class Scanner(complic.scanner.base.Scanner):
+class Scanner(base.Scanner):
     """Scan all Podfile.lock files.
 
     Depends on having "pod" executable in the PATH."""
@@ -51,7 +51,7 @@ class Scanner(complic.scanner.base.Scanner):
             version = match.group(2)
             identifier = ':'.join(['pod', name, version])
 
-            dependency = complic.scanner.base.Dependency(**{'path': file_path})
+            dependency = base.Dependency(**{'path': file_path})
             dependency.identifier = identifier
             spec = Scanner.get_podspec(name)
             for lic in Scanner.get_licenses(spec):

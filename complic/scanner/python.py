@@ -19,8 +19,9 @@ import subprocess
 from pip._vendor import pkg_resources # pylint: disable=no-name-in-module
 import setuptools.sandbox
 
-import complic.scanner.base
 import complic.utils.fs
+
+from . import base
 
 
 class Metadata(object):
@@ -120,7 +121,7 @@ class Metadata(object):
         return self.info
 
 
-class Scanner(complic.scanner.base.Scanner):
+class Scanner(base.Scanner):
     """Look for setup.py files.
 
     Generate pkg-info and start downloading all the dependencies
@@ -230,7 +231,7 @@ class Scanner(complic.scanner.base.Scanner):
 
         dependencies = {}
         for leaf in self.flatten_tree(dependency_tree):
-            dep = complic.scanner.base.Dependency(**leaf.to_dict())
+            dep = base.Dependency(**leaf.to_dict())
             dep.licenses = set()
             dep.licenses.add(leaf.license)
             dependencies[dep.identifier] = dep

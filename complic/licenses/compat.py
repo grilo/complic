@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
 """
-    Scans for license incompatibilities.
+    Scans for license incompatibilities, GPL version.
 """
+
+import logging
 
 
 class Base(object):
@@ -11,25 +13,28 @@ class Base(object):
         Expects a list of complic.scanner.base.Dependency objects.
     """
 
-    def __init__(self):
+    def __init__(self, licenses):
         self.original = set()
         self.incompatible = set()
+        self.licenses = set(licenses)
 
-    def check(self, licenses):
+    def check(self):
         """Given a list of licenses check for incompatibility."""
 
-        gpl = self.original & licenses
+        gpl = self.original & self.licenses
         if gpl:
-            if licenses & self.incompatible:
+            if self.licenses & self.incompatible:
+                logging.warning("GPL incompatible licenses found.")
                 return False
+        logging.info("No GPL incompatible licenses found.")
         return True
 
 
 class GPL(Base):
     """Setup incompatibility for GPL licenses."""
 
-    def __init__(self):
-        super(GPL, self).__init__()
+    def __init__(self, licenses):
+        super(GPL, self).__init__(licenses)
 
         self.original = set([
             'GPL-2.0',
