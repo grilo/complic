@@ -7,6 +7,10 @@
 import logging
 
 
+def get():
+    return [GPL(), Forbidden()]
+
+
 class Base(object):
     """Checks for incompatible liceneses.
 
@@ -17,7 +21,7 @@ class Base(object):
         self.original = set()
         self.incompatible = set()
 
-    def compatible(self, licenses):
+    def check(self, licenses):
         """Given a list of licenses check for incompatibility."""
 
         if not isinstance(licenses, set):

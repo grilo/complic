@@ -6,6 +6,7 @@
 import logging
 import json
 import re
+import distutils
 
 from . import base
 
@@ -18,8 +19,12 @@ class Scanner(base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
-        self.register_handler(re.compile(r'.*/Podfile.lock$'),
-                              Scanner.handle_podfile)
+        if distutils.spawn.find_executable('pod'):
+            self.register_handler(re.compile(r'.*/Podfile.lock$'),
+                                  Scanner.handle_podfile)
+        else:
+            logging.error("Unable to find 'pod' executable in PATH.")
+
 
     @staticmethod
     def get_podspec(podname, version=None):
@@ -28,6 +33,8 @@ class Scanner(base.Scanner):
         command = "pod spec cat '%s'" % (podname)
         rc, out, err = complic.utils.shell.cmd(command)
         if rc != 0:
+            if 'Unable to find a pod with name matching' in out:
+                logging.error("Make sure you have 'pod setup' executed.")
             return {}
         return json.loads(out)
 

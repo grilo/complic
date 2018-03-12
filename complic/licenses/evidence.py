@@ -8,6 +8,14 @@ class Report(object):
     def __init__(self):
         pass
 
+    def add_license(name, dependency):
+        pass
+
+    def add_unknown_license(self, name):
+        pass
+
+    def add_compat(self, name, result):
+        pass
 
     def get_meta(self, project_name, license_report):
         # Generate the following map:

@@ -21,6 +21,30 @@ import complic.licenses.compat
 import complic.licenses.evidence
 
 
+def get_dependencies(scanners, files):
+    dependencies = []
+    for dependency in scanner.scan(files):
+        dependencies.append(dependency)
+    return dependencies
+
+
+def get_licenses(normalizer, dependencies):
+    unknown = set()
+    licenses = {}
+    for dependency in dependencies:
+        for lic_string in dependency.licenses:
+            try:
+                spdx = normalizer.match(lic_string)
+            except complic.licenses.exceptions.UnknownLicenseError:
+                unknown.add(lic_string)
+                spdx = lic_string
+
+            if not spdx in licenses:
+                licenses[spdx] = set()
+            licenses[spdx].add(dependency.identifier)
+    return licenses, unknown
+
+
 def engine(directory):
     """Finds all dependencies and corresponding licenses in a given directory.
 
@@ -41,7 +65,7 @@ def engine(directory):
 
     config = complic.utils.config.Manager()
 
-    # Matches strings to a SPDX
+    # Normalizes strings into the SPDX index (when possible)
     normalizer = complic.licenses.regex.Normalizer()
 
     # Generate the following map:
@@ -51,27 +75,23 @@ def engine(directory):
     #       'dependencies': [ 'dependency1', 'dependency2' ]
     #   }
 
-    unknown_licenses = set()
-    license_dependencies = {}
-    for scanner in complic.scanner.get():
-        for dependency in scanner.scan(complic.utils.fs.Find(directory).files):
-            for license_string in dependency.licenses:
-                name = license_string
-                try:
-                    name = normalizer.match(license_string)
-                except complic.licenses.exceptions.UnknownLicenseError:
-                    unknown_licenses.add(name)
-                    logging.error("License unknown: %s", name)
-
-                if not name in license_dependencies:
-                    license_dependencies[name] = set()
-                license_dependencies[name].add(dependency.identifier)
-
-    gpl_compat = complic.licenses.compat.GPL()
-    gpl_compat.compatible(license_dependencies)
-
+    filelist = complic.utils.fs.Find(directory).files
     report = complic.licenses.evidence.Report()
-    #report.add_compat(gpl_compat)
+
+
+    dependencies = get_dependencies(complic.scanner.get(), filelist)
+
+    license_dependencies, unknown = get_licenses(dependencies)
+
+    for lic, deps in license_dependencies.items():
+        report.add_license(lic, deps)
+        if lic in unknown:
+            report.add_unknown_license(lic)
+
+    for compat_checker in complic.licenses.compat.get():
+        name = compat_checker.__class__.__name__
+        result = compat_checker.check(license_dependencies.keys())
+        report.add_compat(name, result)
 
     return report
 

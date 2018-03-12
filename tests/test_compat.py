@@ -13,32 +13,32 @@ def test_has_compatible_licenses_with_orig():
     c = compat.Base()
     c.original = set(original_lics)
     c.incompatible = set(incompat_lics)
-    assert c.compatible(['world']) == True
+    assert c.check(['world']) == True
 
 def test_has_compatible_licenses_with_random():
     c = compat.Base()
     c.original = set(original_lics)
     c.incompatible = set(incompat_lics)
-    assert c.compatible(['xpto']) == True
+    assert c.check(['xpto']) == True
 
 def test_no_incompatible_licenses():
     c = compat.Base()
     c.original = set(original_lics)
     c.incompatible = set(incompat_lics)
-    assert c.compatible(['hello', 'blah']) == False
+    assert c.check(['hello', 'blah']) == False
 
 def test_incompatible_gpl():
     c = compat.GPL()
-    assert c.compatible(['GPL-2.0', 'CDDL-1.0']) == False
+    assert c.check(['GPL-2.0', 'CDDL-1.0']) == False
 
 def test_compatible_gpl():
     c = compat.GPL()
-    assert c.compatible(['GPL-2.0', 'Mozilla-2.0']) == True
+    assert c.check(['GPL-2.0', 'Mozilla-2.0']) == True
 
 def test_forbidden_bad_license():
     c = compat.Forbidden()
-    assert c.compatible(['AGPL-V1']) == False
+    assert c.check(['AGPL-V1']) == False
 
 def test_forbidden_good_license():
     c = compat.Forbidden()
-    assert c.compatible(['GPL-V3']) == True
+    assert c.check(['GPL-V3']) == True
