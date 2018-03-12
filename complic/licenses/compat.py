@@ -13,28 +13,30 @@ class Base(object):
         Expects a list of complic.scanner.base.Dependency objects.
     """
 
-    def __init__(self, licenses):
+    def __init__(self):
         self.original = set()
         self.incompatible = set()
-        self.licenses = set(licenses)
 
-    def check(self):
+    def compatible(self, licenses):
         """Given a list of licenses check for incompatibility."""
 
-        gpl = self.original & self.licenses
-        if gpl:
-            if self.licenses & self.incompatible:
-                logging.warning("GPL incompatible licenses found.")
+        if not isinstance(licenses, set):
+            licenses = set(licenses)
+
+        intersection = self.original & licenses
+        if intersection:
+            if licenses & self.incompatible:
+                logging.warning("Incompatible licenses found.")
                 return False
-        logging.info("No GPL incompatible licenses found.")
+        logging.info("No incompatible licenses found.")
         return True
 
 
 class GPL(Base):
-    """Setup incompatibility for GPL licenses."""
+    """Incompatibility with GPL licenses."""
 
-    def __init__(self, licenses):
-        super(GPL, self).__init__(licenses)
+    def __init__(self):
+        super(GPL, self).__init__()
 
         self.original = set([
             'GPL-2.0',
@@ -61,3 +63,13 @@ class GPL(Base):
             'PHP-3.0',
             'SUNPublic-1.0',
         ])
+
+
+class Forbidden(Base):
+    """These licenses are completely forbidden from being used."""
+
+    def __init__(self):
+        self.original = set([
+            'AGPL-V1',
+        ])
+        self.incompatible = self.original

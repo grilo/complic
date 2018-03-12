@@ -22,20 +22,24 @@ class Normalizer(object):
     but still limited.
     """
 
-    def __init__(self, licenses=None):
+    def __init__(self, lics=None):
         """The license inventory file <licenses> has the mandatory structure:
 
         unique_lic_identifier:
             'regex': some([regex]expression)
         """
         self.licenses = {}
-        if not licenses:
+        if lics is None:
             inventory_path = os.path.join(os.path.dirname(__file__),
                                           'inventory.json')
             with open(inventory_path, 'r') as inventory:
-                for lic, props in json.loads(inventory.read()).items():
-                    props['regexp'] = re.compile(props['regexp'])
-                    self.licenses[lic] = props
+                lics = json.loads(inventory.read())
+
+        print lics
+
+        for lic, props in lics.items():
+            props['regexp'] = re.compile(props['regexp'])
+            self.licenses[lic] = props
 
     def match(self, string):
         """Finds the first regex that matches and returns its "name".

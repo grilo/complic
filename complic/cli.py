@@ -67,7 +67,8 @@ def engine(directory):
                     license_dependencies[name] = set()
                 license_dependencies[name].add(dependency.identifier)
 
-    gpl_compat = complic.licenses.compat.GPL(license_dependencies)
+    gpl_compat = complic.licenses.compat.GPL()
+    gpl_compat.compatible(license_dependencies)
 
     report = complic.licenses.evidence.Report()
     #report.add_compat(gpl_compat)
