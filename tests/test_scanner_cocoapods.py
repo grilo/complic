@@ -49,12 +49,12 @@ def test_podspec_simple_license():
 
 def test_podspec_weird_license():
     podspec_weird_one = {
-      "name": "AFNetworking",
-      "version": "3.2.0",
-      "license": [
-          "LICENSE1",
-          "LICENSE2"
-      ]
+        "name": "AFNetworking",
+        "version": "3.2.0",
+        "license": [
+            "LICENSE1",
+            "LICENSE2"
+        ]
     }
 
     out = Scanner.get_licenses(podspec_weird_one)
@@ -64,14 +64,12 @@ def test_podspec_weird_license():
 
 def test_podspec_weird_two_license():
     podspec_weird_two = {
-      "name": "AFNetworking",
-      "version": "3.2.0",
-      "licenses": [
-          {
+        "name": "AFNetworking",
+        "version": "3.2.0",
+        "licenses": [{
             "type": "LICENSE2",
             "file": "LICENSE"
-          }
-      ]
+        }]
     }
 
     out = Scanner.get_licenses(podspec_weird_two)
@@ -82,7 +80,7 @@ def test_bad_podspec_empty_dict(mocker):
     mocker.patch.object(shell, 'cmd')
     shell.cmd.return_value = (1, '', '')
     out = Scanner.get_podspec('AFNetworking')
-    assert len(out) == 0
+    assert not out
     assert isinstance(out, dict)
 
 def test_good_podspec_returns_json(mocker):
@@ -134,25 +132,3 @@ def test_handle_podfile(tmpdir, mocker):
     assert dependencies[0].identifier == 'pod:AFNetworking:2.6.3'
     assert len(dependencies[0].licenses) == 1
     assert 'MIT' in dependencies[0].licenses
-
-
-"""
-
-def test_handle_podfile(tmpdir):
-
-    assert len(complic.scanner.cocoapods.Scanner.handle_podfile(path)) > 0
-def test_normalizer_no_key_match():
-    n = regex.Normalizer(lics)
-    with pytest.raises(exceptions.UnknownLicenseError):
-        n.match('some_random_string')
-
-def test_normalizer_no_regex_match():
-    n = regex.Normalizer(lics)
-    with pytest.raises(exceptions.UnknownLicenseError):
-        n.match('aaab')
-
-def test_normalizer_match():
-    n = regex.Normalizer(lics)
-    assert n.match('aaa hello world') == 'some_license'
-
-"""
