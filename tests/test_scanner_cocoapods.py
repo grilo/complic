@@ -91,7 +91,7 @@ def test_good_podspec_returns_json(mocker):
     assert out["hello"] == "world"
 
 def test_ids_from_podfile():
-    podfile = "PODS:
+    podfile = """PODS:
       - AFNetworking (2.6.3):
         - AFNetworking/NSURLConnection (= 2.6.3)
         - AFNetworking/NSURLSession (= 2.6.3)
@@ -103,7 +103,7 @@ def test_ids_from_podfile():
     EXTERNAL SOURCES:
       BraintreeDropIn:
         :podspec: BraintreeDropIn.podspec
-    COCOAPODS: 1.4.0"
+    COCOAPODS: 1.4.0"""
 
     ids = Scanner.get_ids_from_podfile(podfile)
     assert len(ids) == 2
