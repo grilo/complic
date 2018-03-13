@@ -6,7 +6,9 @@ This looks more complex than it really is. Python package management
 is a mess and this module reflects that. Tons of string parsing due to
 "plaintext" formats being used everywhere.
 
-What is wrong with all of XML, JSON and YAML? Why have something different?
+Why not something reasonably structured? Even XML is better than this.
+
+Python: there should be one obvious way to do it... except packaging.
 """
 
 import logging
