@@ -11,6 +11,7 @@ import distutils
 from complic.utils import shell
 
 from . import base
+from . import npm
 
 
 class Scanner(base.Scanner):
@@ -78,27 +79,8 @@ class Scanner(base.Scanner):
             dependency = base.Dependency(**{'path': file_path})
             dependency.identifier = identifier
             spec = Scanner.get_podspec(identifier.split(':')[1])
-            for lic in Scanner.get_licenses(spec):
+            for lic in npm.Scanner.get_licenses(spec):
                 dependency.licenses.add(lic)
             dependencies.append(dependency)
 
         return dependencies
-
-    @staticmethod
-    def get_licenses(pkgjson):
-        """Pasted from: complic.scanner.npm."""
-        lics = []
-        # Normalize the naming if required
-        if 'licenses' in pkgjson.keys():
-            pkgjson['license'] = pkgjson['licenses']
-        if 'license' in pkgjson.keys():
-            # Normalize the type to list
-            if not isinstance(pkgjson['license'], list):
-                pkgjson['license'] = [pkgjson['license']]
-
-            for lic in pkgjson['license']:
-                if isinstance(lic, (str, unicode)):
-                    lics.append(lic)
-                else:
-                    lics.append(lic['type'])
-        return lics

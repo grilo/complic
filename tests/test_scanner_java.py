@@ -2,9 +2,6 @@
 
 import distutils
 
-import pytest
-
-#import complic.scanner.cocoapods
 from complic.scanner.java import Scanner
 from complic.utils import shell
 from complic.utils import fs

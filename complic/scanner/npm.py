@@ -6,6 +6,7 @@
 import logging
 import json
 import re
+import distutils.spawn
 
 from . import base
 
@@ -25,8 +26,12 @@ class Scanner(base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
-        self.register_handler(re.compile(r'.*/package.json$'),
-                              Scanner.handle_pkgjson)
+        if distutils.spawn.find_executable('npm'):
+            self.register_handler(re.compile(r'.*/package.json$'),
+                                  Scanner.handle_pkgjson)
+        else:
+            logging.error("Unable to find 'npm' executable in PATH.")
+
 
     @staticmethod
     def handle_pkgjson(file_path):

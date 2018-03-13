@@ -2,9 +2,6 @@
 
 import distutils
 
-import pytest
-
-#import complic.scanner.cocoapods
 from complic.scanner.cocoapods import Scanner
 from complic.utils import shell
 
@@ -35,46 +32,6 @@ def test_matches_podfiles(mocker):
         'world/anotherfile',
     ])
     Scanner.handle_podfile.assert_called_once_with('hello/Podfile.lock')
-
-def test_podspec_simple_license():
-    podspec = {
-        "name": "AFNetworking",
-        "version": "3.2.0",
-        "license": "MIT",
-    }
-
-    out = Scanner.get_licenses(podspec)
-    assert len(out) == 1
-    assert 'MIT' in out
-
-def test_podspec_weird_license():
-    podspec = {
-        "name": "AFNetworking",
-        "version": "3.2.0",
-        "license": [
-            "LICENSE1",
-            "LICENSE2"
-        ]
-    }
-
-    out = Scanner.get_licenses(podspec)
-    assert len(out) == 2
-    assert 'LICENSE1' in out
-    assert 'LICENSE2' in out
-
-def test_podspec_weird_two_license():
-    podspec = {
-        "name": "AFNetworking",
-        "version": "3.2.0",
-        "licenses": [{
-            "type": "LICENSE2",
-            "file": "LICENSE"
-        }]
-    }
-
-    out = Scanner.get_licenses(podspec)
-    assert len(out) == 1
-    assert 'LICENSE2' in out
 
 def test_bad_podspec_empty_dict(mocker):
     mocker.patch.object(shell, 'cmd')
