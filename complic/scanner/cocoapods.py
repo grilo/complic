@@ -8,6 +8,8 @@ import json
 import re
 import distutils
 
+from complic.utils import shell
+
 from . import base
 
 
@@ -27,16 +29,41 @@ class Scanner(base.Scanner):
 
 
     @staticmethod
-    def get_podspec(podname, version=None):
-        # I don't know how to query for specific versions :(
-        licenses = []
+    def get_podspec(podname):
+        """Returns the JSON structure of the given pod name.
+
+        This should have a "version" parameter for completeness sake, but
+        I don't know how to query for specific versions :(
+        """
         command = "pod spec cat '%s'" % (podname)
-        rc, out, err = complic.utils.shell.cmd(command)
-        if rc != 0:
+        return_code, out, _ = shell.cmd(command)
+        if return_code != 0:
             if 'Unable to find a pod with name matching' in out:
                 logging.error("Make sure you have 'pod setup' executed.")
             return {}
         return json.loads(out)
+
+    @staticmethod
+    def get_ids_from_podfile(string):
+        """Returns a list of <identifiers> found in the given string.
+
+        An <identifier> is a string composed of:
+            technology:name:version
+
+        Example:
+            pod:AFNetworking:2.3.0
+
+        """
+        identifiers = set()
+        regex = re.compile(r'\s+- ([A-Za-z\/-_\.0-9]+)\s*\([><=~ ]*([0-9\.]+)\)')
+        for line in string.splitlines():
+            match = regex.match(line)
+            if not match:
+                continue
+            name = match.group(1).split('/')[0]
+            version = match.group(2)
+            identifiers.add(':'.join(['pod', name, version]))
+        return identifiers
 
     @staticmethod
     def handle_podfile(file_path):
@@ -46,21 +73,11 @@ class Scanner(base.Scanner):
         basic stuff instead."""
 
         dependencies = []
-        regex = re.compile(r'\s - ([A-Za-z\/-_\.0-9]+)\s*\([><=~ ]*([0-9\.]+)\)')
 
-        identifiers = set()
-
-        for line in open(file_path, 'r').read().splitlines():
-            match = regex.match(line)
-            if not match:
-                continue
-            name = match.group(1).split('/')[0]
-            version = match.group(2)
-            identifier = ':'.join(['pod', name, version])
-
+        for identifier in Scanner.get_ids_from_podfile(open(file_path, 'r').read()):
             dependency = base.Dependency(**{'path': file_path})
             dependency.identifier = identifier
-            spec = Scanner.get_podspec(name)
+            spec = Scanner.get_podspec(identifier.split(':')[1])
             for lic in Scanner.get_licenses(spec):
                 dependency.licenses.add(lic)
             dependencies.append(dependency)

@@ -4,80 +4,143 @@ import distutils
 
 import pytest
 
-import complic.scanner.cocoapods
-
-podfile = """PODS:
-  - AFNetworking (2.6.3):
-    - AFNetworking/NSURLConnection (= 2.6.3)
-    - AFNetworking/NSURLSession (= 2.6.3)
-  - AFNetworking/NSURLConnection (2.6.3):
-    - AFNetworking/Reachability
-  - PureLayout (3.0.2)
-
-DEPENDENCIES:
-  - AFNetworking (~> 2.6.0)
-  - BraintreeDropIn (from `BraintreeDropIn.podspec`)
-
-EXTERNAL SOURCES:
-  BraintreeDropIn:
-    :podspec: BraintreeDropIn.podspec
-
-EXTERNAL SOURCES:
-  BraintreeDropIn:
-    :podspec: BraintreeDropIn.podspec
-
-CHECKOUT OPTIONS:
-  BraintreeDropIn:
-    :commit: 87e2254148bed745d246e2ac7866b22c3c5fabc2
-    :git: https://github.com/braintree/braintree-ios-drop-in.git
-
-SPEC CHECKSUMS:
-  AFNetworking: cb8d14a848e831097108418f5d49217339d4eb60
-
-PODFILE CHECKSUM: 4a4706f8c5de8995930f5c2ca08c0bcfb13740e1
-
-COCOAPODS: 1.4.0"""
+#import complic.scanner.cocoapods
+from complic.scanner.cocoapods import Scanner
+from complic.utils import shell
 
 
 def test_no_matches_if_not_in_path(mocker):
     mocker.patch.object(distutils.spawn, 'find_executable')
     distutils.spawn.find_executable.return_value = False
 
-    mocker.patch.object(complic.scanner.cocoapods.Scanner, 'handle_podfile')
-    complic.scanner.cocoapods.Scanner.handle_podfile.return_value = []
-    s = complic.scanner.cocoapods.Scanner()
+    mocker.patch.object(Scanner, 'handle_podfile')
+
+    s = Scanner()
     s.scan([
         'hello/Podfile.lock',
         'world/anotherfile',
     ])
-    assert complic.scanner.cocoapods.Scanner.handle_podfile.assert_called_once_with('hello/Podfile.lock') == False
+    Scanner.handle_podfile.no_calls()
 
 
 def test_matches_podfiles(mocker):
     mocker.patch.object(distutils.spawn, 'find_executable')
     distutils.spawn.find_executable.return_value = True
 
-    mocker.patch.object(complic.scanner.cocoapods.Scanner, 'handle_podfile')
-    complic.scanner.cocoapods.Scanner.handle_podfile.return_value = []
-    s = complic.scanner.cocoapods.Scanner()
+    mocker.patch.object(Scanner, 'handle_podfile')
+    Scanner.handle_podfile.return_value = []
+    s = Scanner()
     s.scan([
         'hello/Podfile.lock',
         'world/anotherfile',
     ])
-    complic.scanner.cocoapods.Scanner.handle_podfile.assert_called_once_with('hello/Podfile.lock')
+    Scanner.handle_podfile.assert_called_once_with('hello/Podfile.lock')
 
+def test_podspec_simple_license():
+    podspec_simple = {
+        "name": "AFNetworking",
+        "version": "3.2.0",
+        "license": "MIT",
+    }
 
-def test_handle_podfile(tmpdir):
+    out = Scanner.get_licenses(podspec_simple)
+    assert len(out) == 1
+    assert 'MIT' in out
+
+def test_podspec_weird_license():
+    podspec_weird_one = {
+      "name": "AFNetworking",
+      "version": "3.2.0",
+      "license": [
+          "LICENSE1",
+          "LICENSE2"
+      ]
+    }
+
+    out = Scanner.get_licenses(podspec_weird_one)
+    assert len(out) == 2
+    assert 'LICENSE1' in out
+    assert 'LICENSE2' in out
+
+def test_podspec_weird_two_license():
+    podspec_weird_two = {
+      "name": "AFNetworking",
+      "version": "3.2.0",
+      "licenses": [
+          {
+            "type": "LICENSE2",
+            "file": "LICENSE"
+          }
+      ]
+    }
+
+    out = Scanner.get_licenses(podspec_weird_two)
+    assert len(out) == 1
+    assert 'LICENSE2' in out
+
+def test_bad_podspec_empty_dict(mocker):
+    mocker.patch.object(shell, 'cmd')
+    shell.cmd.return_value = (1, '', '')
+    out = Scanner.get_podspec('AFNetworking')
+    assert len(out) == 0
+    assert isinstance(out, dict)
+
+def test_good_podspec_returns_json(mocker):
+    mocker.patch.object(shell, 'cmd')
+    shell.cmd.return_value = (0, '{"hello": "world"}', '')
+    out = Scanner.get_podspec('AFNetworking')
+    assert len(out) == 1
+    assert out["hello"] == "world"
+
+def test_ids_from_podfile():
+    podfile = """PODS:
+      - AFNetworking (2.6.3):
+        - AFNetworking/NSURLConnection (= 2.6.3)
+        - AFNetworking/NSURLSession (= 2.6.3)
+
+    DEPENDENCIES:
+      - AFNetworking (~> 2.6.0)
+      - BraintreeDropIn (from `BraintreeDropIn.podspec`)
+
+    EXTERNAL SOURCES:
+      BraintreeDropIn:
+        :podspec: BraintreeDropIn.podspec
+    COCOAPODS: 1.4.0"""
+
+    ids = Scanner.get_ids_from_podfile(podfile)
+    assert len(ids) == 2
+    assert 'pod:AFNetworking:2.6.3' in ids
+    assert 'pod:AFNetworking:2.6.0' in ids
+
+def test_handle_podfile(tmpdir, mocker):
+    mocker.patch.object(Scanner, 'get_ids_from_podfile')
+    Scanner.get_ids_from_podfile.return_value = [
+        'pod:AFNetworking:2.6.3',
+    ]
+
+    mocker.patch.object(Scanner, 'get_podspec')
+    Scanner.get_podspec.return_value = {
+        "name": "AFNetworking",
+        "version": "3.2.0",
+        "license": "MIT",
+    }
+
     p = tmpdir.mkdir("project").join("Podfile.lock")
-    p.write(podfile)
-
+    p.write('fake')
     path = str(p.realpath())
 
-    assert len(complic.scanner.cocoapods.Scanner.handle_podfile(path)) > 0
-
+    dependencies = Scanner.handle_podfile(path)
+    assert len(dependencies) == 1
+    assert dependencies[0].identifier == 'pod:AFNetworking:2.6.3'
+    assert len(dependencies[0].licenses) == 1
+    assert 'MIT' in dependencies[0].licenses
 
 
 """
+
+def test_handle_podfile(tmpdir):
+
+    assert len(complic.scanner.cocoapods.Scanner.handle_podfile(path)) > 0
 def test_normalizer_no_key_match():
     n = regex.Normalizer(lics)
     with pytest.raises(exceptions.UnknownLicenseError):
