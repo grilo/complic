@@ -17,8 +17,6 @@ class Scanner(object):
 
     def __init__(self):
         self.handlers = {}
-        self.register_handler(re.compile('ONLY_EXAMPLE'),
-                              self.example_handler)
 
     def register_handler(self, regex, callback):
         """Handler is a simple regex-based callback.
@@ -26,10 +24,6 @@ class Scanner(object):
         If the file matches the regex, the callback is invoked.
         """
         self.handlers[regex] = callback
-
-    def example_handler(self, file_path):
-        """Placeholder."""
-        pass
 
     def scan(self, filelist):
         """This should be left alone.
