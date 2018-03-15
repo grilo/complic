@@ -8,5 +8,5 @@ install:
 
 script:
   - pip install --user coveralls
-  - coverage run --source=complic setup.py test
+  - coverage run setup.py test
   - coveralls
