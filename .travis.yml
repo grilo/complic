@@ -10,4 +10,3 @@ script:
   - pip install --user coveralls
   - coverage run --source=complic setup.py test
   - coveralls
-
