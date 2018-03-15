@@ -5,8 +5,8 @@ python:
 install:
   - pip install --user -r requirements-dev.txt
   - pip install --user -r requirements.txt
+  - pip install --user coveralls
 
 script:
-  - pip install --user coveralls
-  - coverage run setup.py test
+  - python setup.py test
   - coveralls
