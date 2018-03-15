@@ -35,7 +35,7 @@ def test_matches_podfiles(mocker):
 
 def test_bad_podspec_empty_dict(mocker):
     mocker.patch.object(shell, 'cmd')
-    shell.cmd.return_value = (1, '', '')
+    shell.cmd.return_value = (1, 'Unable to find a pod with name matching', '')
     out = Scanner.get_podspec('AFNetworking')
     assert not out
     assert isinstance(out, dict)
