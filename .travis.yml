@@ -9,4 +9,4 @@ install:
 
 script:
   - python setup.py test
-  - coveralls
+  - coveralls --data_file=.coverage
