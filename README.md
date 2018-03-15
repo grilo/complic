@@ -3,7 +3,6 @@ Collects all licensing information reported by several package managers.
 
 [![Build
 Status](https://travis-ci.org/grilo/complic.svg?branch=license_list_updater)](https://travis-ci.org/grilo/complic)
-
 [![Coverage Status](https://coveralls.io/repos/github/grilo/complic/badge.svg?branch=license_list_updater)](https://coveralls.io/github/grilo/complic?branch=license_list_updater)
 
 Matches those licenses with a backend to determine if the license is approved,
