@@ -25,7 +25,7 @@ class Manager(object):
         }
         self.config_dir = os.path.join(os.environ.get("HOME", os.getcwd()),
                                        '.complic')
-        config_file = os.path.join(self.config_dir, 'site.cfg')
+        config_file = os.path.join(self.config_dir, 'complic.cfg')
         config_parser = ConfigParser.SafeConfigParser()
         if os.path.isfile(config_file):
             logging.info("Found config file: %s", config_file)

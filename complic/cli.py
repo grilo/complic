@@ -75,23 +75,25 @@ def engine(directory):
     #       'dependencies': [ 'dependency1', 'dependency2' ]
     #   }
 
+
     filelist = complic.utils.fs.Find(directory).files
     report = complic.licenses.evidence.Report()
-
-
     dependencies = get_dependencies(complic.scanner.get(), filelist)
 
-    license_dependencies, unknown = get_licenses(dependencies)
+    # Add all compatibility checkers to the report generator
+    for checker in complic.licenses.compat.get()
+        report.add_compat(checker)
 
-    for lic, deps in license_dependencies.items():
-        report.add_license(lic, deps)
-        if lic in unknown:
-            report.add_unknown_license(lic)
-
-    for compat_checker in complic.licenses.compat.get():
-        name = compat_checker.__class__.__name__
-        result = compat_checker.check(license_dependencies.keys())
-        report.add_compat(name, result)
+    # Add all licenses and its respective dependencies
+    for dependency in dependencies:
+        for lic in dependency.licenses:
+            name = lic
+            known = True
+            try:
+                name = normalizer.match(lic)
+            except exceptions.UnknownLicenseError:
+                known = False
+            report.add_license(name, dependency.identifier, known)
 
     return report
 

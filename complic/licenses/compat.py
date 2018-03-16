@@ -17,30 +17,41 @@ class Base(object):
         Expects a list of complic.scanner.base.Dependency objects.
     """
 
-    def __init__(self):
+    def __init__(self, description):
+        self.description = description
         self.original = set()
         self.incompatible = set()
 
     def check(self, licenses):
         """Given a list of licenses check for incompatibility."""
 
+        result = {
+            'description': self.description,
+            'error': False,
+            'problems': [],
+        }
+
         if not isinstance(licenses, set):
             licenses = set(licenses)
 
         intersection = self.original & licenses
         if intersection:
-            if licenses & self.incompatible:
-                logging.warning("Incompatible licenses found.")
-                return False
-        logging.info("No incompatible licenses found.")
-        return True
+            overlap = licenses & self.incompatible
+            if overlap:
+                logging.debug("Incompatible licenses found.")
+                result['error'] = True
+                result['problems'] = list(overlap)
+                return result
+        logging.debug("No incompatible licenses found.")
+        return result
 
 
 class GPL(Base):
     """Incompatibility with GPL licenses."""
 
     def __init__(self):
-        super(GPL, self).__init__()
+        desc = "Licenses incompatible with GPL licensed code."
+        super(GPL, self).__init__(desc)
 
         self.original = set([
             'GPL-2.0',
@@ -73,6 +84,8 @@ class Forbidden(Base):
     """These licenses are completely forbidden from being used."""
 
     def __init__(self):
+        desc = "Licenses forbidden from use."
+        super(Forbidden, self).__init__(desc)
         self.original = set([
             'AGPL-V1',
         ])
