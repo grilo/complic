@@ -23,29 +23,13 @@ import complic.licenses.evidence
 
 def get_dependencies(scanners, files):
     dependencies = []
-    for dependency in scanner.scan(files):
-        dependencies.append(dependency)
+    for scanner in scanners:
+        for dependency in scanner.scan(files):
+            dependencies.append(dependency)
     return dependencies
 
 
-def get_licenses(normalizer, dependencies):
-    unknown = set()
-    licenses = {}
-    for dependency in dependencies:
-        for lic_string in dependency.licenses:
-            try:
-                spdx = normalizer.match(lic_string)
-            except complic.licenses.exceptions.UnknownLicenseError:
-                unknown.add(lic_string)
-                spdx = lic_string
-
-            if not spdx in licenses:
-                licenses[spdx] = set()
-            licenses[spdx].add(dependency.identifier)
-    return licenses, unknown
-
-
-def engine(directory):
+def engine(directory, name):
     """Finds all dependencies and corresponding licenses in a given directory.
 
     Returns a dictionary containing:
@@ -77,28 +61,31 @@ def engine(directory):
 
 
     filelist = complic.utils.fs.Find(directory).files
-    report = complic.licenses.evidence.Report()
+    report = complic.licenses.evidence.Report(name)
     dependencies = get_dependencies(complic.scanner.get(), filelist)
 
     # Add all compatibility checkers to the report generator
-    for checker in complic.licenses.compat.get()
+    for checker in complic.licenses.compat.get():
         report.add_compat(checker)
 
     # Add all licenses and its respective dependencies
     for dependency in dependencies:
+        if not dependency.licenses:
+            report.add_license('<no license>', dependency.identifier, False)
+            continue
         for lic in dependency.licenses:
             name = lic
             known = True
             try:
                 name = normalizer.match(lic)
-            except exceptions.UnknownLicenseError:
+            except complic.licenses.exceptions.UnknownLicenseError:
                 known = False
             report.add_license(name, dependency.identifier, known)
 
     return report
 
 
-def main():
+def main(): # pragma: nocover
     desc = "Collect licensing information from package managers (mvn, npm, \
             pypi, etc.) and generate a complic-report.json with the results."
     parser = argparse.ArgumentParser(description=desc)
@@ -107,6 +94,8 @@ def main():
         help="Increase output verbosity")
     parser.add_argument("-d", "--directory", default=os.getcwd(), \
         help="The directory to scan.")
+    parser.add_argument("-n", "--name", default=None, \
+        help="The name to identify this project with (defaults to directory).")
 
     args = parser.parse_args()
 
@@ -120,8 +109,11 @@ def main():
         logging.critical("Specified parameter directory doesn't look like one: %s", args.directory)
         sys.exit(1)
 
+    if not args.name:
+        args.name = args.directory
+
     report_path = os.path.join(args.directory, 'complic-report.json')
-    report = engine(args.directory)
+    report = engine(args.directory, args.name)
 
     logging.info("Writing complic report to: %s", report_path)
     with open(report_path, 'w') as report_file:
@@ -130,5 +122,5 @@ def main():
     logging.info(report.to_string())
 
 
-if __name__ == '__main__':
+if __name__ == '__main__': # pragma: nocover
     main()

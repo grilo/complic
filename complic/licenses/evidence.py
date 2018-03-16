@@ -18,6 +18,7 @@ class Report(object):
         self.compat_checkers.append(compat)
 
     def add_license(self, name, identifier, known):
+        logging.debug("Report license: %s %s %s", name, identifier, known)
         if not name in self.licenses:
             self.licenses[name] = known
         if not identifier in self.dependencies:
@@ -43,33 +44,73 @@ class Report(object):
 
         return report
 
+    def get_license_deps(self, lic):
+        deps = set()
+        for dep, licenses in self.dependencies.items():
+            if lic in licenses:
+                deps.add(dep)
+        return deps
+
     @property
-    def stats(self):
-        dep_count = len(self.dependencies)
-        lic_count = len(self.licenses)
-        prob_count = 0
+    def problems(self):
+        problems = []
+
         for name, props in self.report_raw['compatibility'].items():
             if props['error']:
-                prob_count += len(props['problems'])
 
-        return {
-            'dependencies': dep_count,
-            'licenses': lic_count,
-            'problems': prob_count,
-        }
+                deps = set()
+                for lic in props['problems']:
+                    deps = deps & self.get_license_deps(lic)
+
+                problem = {
+                    'licenses': props['problems'],
+                    'dependencies': list(deps),
+                    'description': props['description'],
+                }
+
+                problems.append(problem)
+
+
+        for lic, known in self.licenses.items():
+            if not known:
+                deps = self.get_license_deps(lic)
+                deps = ','.join(list(deps))
+                desc = "Uknown/no license means no rights to use/modify/share."
+                problem = {
+                    'licenses': [lic],
+                    'dependencies': list(self.get_license_deps(lic)),
+                    'description': desc,
+                }
+                problems.append(problem)
+
+        return problems
 
     def to_json(self):
         return json.dumps(self.report_raw)
 
     def to_text(self):
 
-        stats = self.stats
+        dep_count = len(self.dependencies)
+        lic_count = len(self.licenses)
 
-        today = datetime.date.today().strftime('%d %b %Y')
+        probs = self.problems
+        prob_count = len(probs)
+
+        prob_list = []
+        for p in self.problems:
+            msg = "[{lic}] {reason}\n"
+            msg += "\tDependencies: {deps}"
+            prob_list.append(msg.format(lic=','.join(p['licenses']),
+                                        reason=p['description'],
+                                        deps=','.join(p['dependencies']))
+                            )
+
+        today = datetime.datetime.now().strftime('%d %b %Y %H:%M')
         msg = "On %s, a license analysis was performed," % (today)
         msg += " of project (%s), finding" % (self.name)
-        msg += " %i unique dependencies and" % (stats['dependencies'])
-        msg += " %i licenses, and" % (stats['licenses'])
-        msg += " %i problems." % (stats['problems'])
+        msg += " %i unique dependencies," % (dep_count)
+        msg += " %i licenses and" % (lic_count)
+        msg += " %i problems.\n\bProblems:\n" % (len(probs))
+        msg += ' - ' + '\n - '.join(prob_list)
 
         return msg

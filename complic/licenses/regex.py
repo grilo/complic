@@ -35,8 +35,6 @@ class Normalizer(object):
             with open(inventory_path, 'r') as inventory:
                 lics = json.loads(inventory.read())
 
-        print lics
-
         for lic, props in lics.items():
             props['regexp'] = re.compile(props['regexp'])
             self.licenses[lic] = props
