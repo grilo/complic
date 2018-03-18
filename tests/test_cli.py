@@ -3,9 +3,10 @@
 from complic.utils import fs
 
 from complic import cli
+from complic.licenses import evidence
 
 
-def test_get_depenedencies(mocker):
+def test_get_dependencies(mocker):
     scanner_a = mocker.Mock()
     scanner_a.scan.return_value = ['dependency1']
 
@@ -45,7 +46,7 @@ def test_engine(mocker):
         dep1, dep2, dep3, dep4
     ]
 
-
     report = cli.engine('/some/dir', 'project_name')
-    print report.to_text()
-    assert False
+    # Shouldn't really be testing types, but I don't know
+    # what else to put here.
+    assert isinstance(report, evidence.Report)

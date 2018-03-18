@@ -82,9 +82,7 @@ class Scanner(base.Scanner):
                 continue
             string = open(path, 'r').read()
             for identifier, licenses in Scanner.parse_thirdparty(string).items():
-
-                dependency = base.Dependency(**{'path': path})
-                dependency.identifier = identifier
+                dependency = base.Dependency(identifier, path)
                 dependency.licenses = licenses
                 deps.append(dependency)
 

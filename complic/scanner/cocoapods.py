@@ -76,8 +76,7 @@ class Scanner(base.Scanner):
         dependencies = []
 
         for identifier in Scanner.get_ids_from_podfile(open(file_path, 'r').read()):
-            dependency = base.Dependency(**{'path': file_path})
-            dependency.identifier = identifier
+            dependency = base.Dependency(identifier, file_path)
             spec = Scanner.get_podspec(identifier.split(':')[1])
             for lic in npm.Scanner.get_licenses(spec):
                 dependency.licenses.add(lic)

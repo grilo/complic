@@ -123,8 +123,7 @@ class Scanner(base.Scanner):
             metadata = open(path, 'r').read()
 
             identifier, lic = Scanner.parse_metadata(metadata)
-            dependency = base.Dependency(**{'path': path})
-            dependency.identifier = identifier
+            dependency = base.Dependency(identifier, path)
             dependency.licenses.add(lic)
             deps.append(dependency)
 

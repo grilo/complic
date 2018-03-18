@@ -37,7 +37,7 @@ def test_report(report):
     assert out['compatibility']['MagicMock']['problems'] == 'Found one!'
 
 def test_report_json(report):
-    json.loads(report.to_json())
+    assert json.loads(report.to_json())
 
 def test_report_text(report):
     assert isinstance(report.to_text(), str)

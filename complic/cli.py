@@ -11,7 +11,6 @@ import json
 import datetime
 
 import complic.utils.fs
-import complic.utils.config
 
 import complic.scanner
 
@@ -47,8 +46,6 @@ def engine(directory, name):
         SPDX: MPL
     """
 
-    config = complic.utils.config.Manager()
-
     # Normalizes strings into the SPDX index (when possible)
     normalizer = complic.licenses.regex.Normalizer()
 
@@ -61,26 +58,21 @@ def engine(directory, name):
 
 
     filelist = complic.utils.fs.Find(directory).files
-    report = complic.licenses.evidence.Report(name)
+    report = complic.licenses.evidence.Report(name,
+                                              complic.licenses.compat.get())
     dependencies = get_dependencies(complic.scanner.get(), filelist)
 
-    # Add all compatibility checkers to the report generator
-    for checker in complic.licenses.compat.get():
-        report.add_compat(checker)
-
-    # Add all licenses and its respective dependencies
     for dependency in dependencies:
         if not dependency.licenses:
             report.add_license('<no license>', dependency.identifier, False)
             continue
         for lic in dependency.licenses:
-            name = lic
-            known = True
             try:
-                name = normalizer.match(lic)
+                report.add_license(normalizer.match(lic),
+                                   dependency.identifier,
+                                   True)
             except complic.licenses.exceptions.UnknownLicenseError:
-                known = False
-            report.add_license(name, dependency.identifier, known)
+                report.add_license(lic, dependency.identifier, False)
 
     return report
 

@@ -8,9 +8,9 @@ import datetime
 
 class Report(object):
 
-    def __init__(self, name):
+    def __init__(self, name, compat_checkers=[]):
         self.name = name
-        self.compat_checkers = []
+        self.compat_checkers = compat_checkers
         self.licenses = {}
         self.dependencies = {}
 
