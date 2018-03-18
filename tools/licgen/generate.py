@@ -14,6 +14,7 @@
 
 import logging
 import json
+import os
 import re
 import sys
 import collections
@@ -23,8 +24,11 @@ import requests
 logging.basicConfig(format='%(asctime)s::%(levelname)s::%(message)s')
 logging.getLogger().setLevel(logging.DEBUG)
 
+licenses_path = os.path.join('tools', 'licgen', 'licenses.json')
+if not os.path.isfile(licenses_path):
+    licenses_path = 'licenses.json'
 
-licenses = json.loads(open('licenses.json', 'r').read())
+licenses = json.loads(open(licenses_path, 'r').read())
 raw_spdx = requests.get('https://raw.githubusercontent.com/spdx/license-list-data/master/json/licenses.json').json()
 logging.info("SPDX licenses downloaded: %i", len(raw_spdx['licenses']))
 
@@ -95,4 +99,3 @@ for k in sorted(licenses):
     sorted_lics[k] = lic
 
 print json.dumps(sorted_lics, indent=2)
-
