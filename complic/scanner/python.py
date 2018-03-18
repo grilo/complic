@@ -68,10 +68,12 @@ class Scanner(base.Scanner):
         def mock_setup(**kwargs):
             mock_setup.extras = kwargs.get('extras_require', {}).keys()
         setuptools.setup = mock_setup
-        sys.path = [os.path.dirname(setup_py)] + sys.path
-        import setup # This triggers the execution of mock_setup
-        sys.path = sys.path[1:] # Remove the taint from our environment
-        return mock_setup.__dict__.get('extras', [])
+        setup_py_dir = os.path.dirname(setup_py)
+        sys.path = [setup_py_dir] + sys.path
+        with fs.chdir(setup_py_dir):
+            import setup # This triggers the execution of mock_setup
+            sys.path = sys.path[1:] # Remove the taint from our environment
+            return mock_setup.__dict__.get('extras', [])
 
     @staticmethod
     def pip_install(setup_py, extras=None):
