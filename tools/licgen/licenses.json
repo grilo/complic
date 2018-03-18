@@ -317,7 +317,7 @@
     "isFsfLibre": true,
     "licenseId": "APACHE-1.0",
     "detailsUrl": "http://spdx.org/licenses/Apache-1.0.json",
-    "regexp": "(.*)(apache|the apache|asf)(.*)(1)(.*)",
+    "regexp": ".*([Aa]pache|ASL).*1.0",
     "seeAlso": [
       "http://www.apache.org/licenses/LICENSE-1.0"
     ],
@@ -332,7 +332,7 @@
     "isFsfLibre": true,
     "licenseId": "APACHE-1.1",
     "detailsUrl": "http://spdx.org/licenses/Apache-1.1.json",
-    "regexp": "(.*)(apache|the apache|asf)(.*)(1.1)(.*)",
+    "regexp": ".*([Aa]pache|ASL).*1\\.1",
     "seeAlso": [
       "http://apache.org/licenses/LICENSE-1.1",
       "http://opensource.org/licenses/Apache-1.1"
@@ -348,7 +348,7 @@
     "isFsfLibre": true,
     "licenseId": "APACHE-2.0",
     "detailsUrl": "http://spdx.org/licenses/Apache-2.0.json",
-    "regexp": "(((.*)(apache|the apache|asf)(.*)(2)(.*))|(.*)(apache license|apache|Software Licenses))",
+    "regexp": "(.*([Aa]pache|ASL).*2|Apache Software License.)",
     "seeAlso": [
       "http://www.apache.org/licenses/LICENSE-2.0",
       "http://www.opensource.org/licenses/Apache-2.0"
@@ -616,7 +616,7 @@
     "referenceNumber": "44",
     "licenseId": "BSD-2-CLAUSE",
     "detailsUrl": "http://spdx.org/licenses/BSD-2-Clause.json",
-    "regexp": "BSD 2-Clause \"Simplified\" License",
+    "regexp": "(BSD 2-Clause \"Simplified\" License|2-.lause BSD|BSD)",
     "isOsiApproved": true,
     "seeAlso": [
       "http://www.opensource.org/licenses/BSD-2-Clause"
@@ -659,7 +659,7 @@
     "referenceNumber": "43",
     "licenseId": "BSD-2-CLAUSE-PATENT",
     "detailsUrl": "http://spdx.org/licenses/BSD-2-Clause-Patent.json",
-    "regexp": "BSD-2-Clause Plus Patent License",
+    "regexp": "(BSD-2-Clause Plus Patent License|((The )*(BSD style|BSD License))).*",
     "isOsiApproved": true,
     "seeAlso": [
       "https://opensource.org/licenses/BSDplusPatent"
@@ -674,7 +674,7 @@
     "isFsfLibre": true,
     "licenseId": "BSD-3-CLAUSE",
     "detailsUrl": "http://spdx.org/licenses/BSD-3-Clause.json",
-    "regexp": "BSD 3-Clause \"New\" or \"Revised\" License",
+    "regexp": "(BSD 3-Clause|Revised.*BSD|BSD.*Revised|New.*BSD|BSD.*New)",
     "isOsiApproved": true,
     "seeAlso": [
       "http://www.opensource.org/licenses/BSD-3-Clause"
@@ -1335,7 +1335,7 @@
     "isFsfLibre": true,
     "licenseId": "CC0-1.0",
     "detailsUrl": "http://spdx.org/licenses/CC0-1.0.json",
-    "regexp": "(Creative Commons Zero)",
+    "regexp": "(Creative Commons Zero|CC0)",
     "isOsiApproved": false,
     "seeAlso": [
       "http://creativecommons.org/publicdomain/zero/1.0/legalcode"
@@ -1350,7 +1350,7 @@
     "isFsfLibre": true,
     "licenseId": "CDDL-1.0",
     "detailsUrl": "http://spdx.org/licenses/CDDL-1.0.json",
-    "regexp": "Common Development and Distribution License 1.0",
+    "regexp": ".*(Common Development and Distribution License|CDDL).*1.0",
     "isOsiApproved": true,
     "seeAlso": [
       "http://www.opensource.org/licenses/cddl1"
@@ -1364,7 +1364,7 @@
     "referenceNumber": "93",
     "licenseId": "CDDL-1.1",
     "detailsUrl": "http://spdx.org/licenses/CDDL-1.1.json",
-    "regexp": "Common Development and Distribution License 1.1",
+    "regexp": ".*(Common Development [Aa]nd Distribution License|COMMON DEVELOPMENT AND DISTRIBUTION LICENSE|CDDL).*",
     "isOsiApproved": false,
     "seeAlso": [
       "http://glassfish.java.net/public/CDDL+GPL_1_1.html",
@@ -1911,7 +1911,7 @@
     "isFsfLibre": true,
     "licenseId": "EPL-1.0",
     "detailsUrl": "http://spdx.org/licenses/EPL-1.0.json",
-    "regexp": "Eclipse Public License 1.0",
+    "regexp": "(Eclipse Public License|EPL).*1.0",
     "isOsiApproved": true,
     "seeAlso": [
       "http://www.eclipse.org/legal/epl-v10.html",
@@ -2397,7 +2397,7 @@
     "isFsfLibre": false,
     "licenseId": "GPL-2.0",
     "detailsUrl": "http://spdx.org/licenses/GPL-2.0.json",
-    "regexp": "((GPL)|(.*)GNU)(?!.*lesser)(.*)(2)+(.*)",
+    "regexp": ".*(GNU General|GPL).*(v)*2",
     "seeAlso": [
       "http://www.gnu.org/licenses/old-licenses/gpl-2.0-standalone.html",
       "http://www.opensource.org/licenses/GPL-2.0"
@@ -2851,7 +2851,7 @@
     "isFsfLibre": true,
     "licenseId": "ISC",
     "detailsUrl": "http://spdx.org/licenses/ISC.json",
-    "regexp": "ISC License",
+    "regexp": "ISC",
     "isOsiApproved": true,
     "seeAlso": [
       "https://www.isc.org/downloads/software-support-policy/isc-license/",
@@ -2984,7 +2984,7 @@
     "isFsfLibre": false,
     "licenseId": "LGPL-2.0",
     "detailsUrl": "http://spdx.org/licenses/LGPL-2.0.json",
-    "regexp": "GNU Library General Public License v2 only",
+    "regexp": ".*((GNU (Library|Lesser))|LGPL).*v*2.*",
     "isOsiApproved": true,
     "seeAlso": [
       "http://www.gnu.org/licenses/old-licenses/lgpl-2.0-standalone.html"
@@ -3027,7 +3027,7 @@
     "referenceNumber": "182",
     "licenseId": "LGPL-2.0-OR-LATER",
     "detailsUrl": "http://spdx.org/licenses/LGPL-2.0-or-later.json",
-    "regexp": "GNU Library General Public License v2 or later",
+    "regexp": ".*((GNU (Library|Lesser|LESSER))|LGPL).*",
     "isOsiApproved": true,
     "seeAlso": [
       "http://www.gnu.org/licenses/old-licenses/lgpl-2.0-standalone.html"
@@ -3384,7 +3384,7 @@
     "isFsfLibre": true,
     "licenseId": "MIT",
     "detailsUrl": "http://spdx.org/licenses/MIT.json",
-    "regexp": "(.*)(MIT)+(.*)",
+    "regexp": ".*(MIT).*",
     "seeAlso": [
       "http://www.opensource.org/licenses/MIT"
     ],
@@ -4477,7 +4477,7 @@
     "isFsfLibre": true,
     "licenseId": "PYTHON-2.0",
     "detailsUrl": "http://spdx.org/licenses/Python-2.0.json",
-    "regexp": "Python License 2.0",
+    "regexp": "(Python License 2.0|PSF)",
     "isOsiApproved": true,
     "seeAlso": [
       "http://www.opensource.org/licenses/Python-2.0"
@@ -5061,7 +5061,7 @@
     "isFsfLibre": true,
     "licenseId": "UNLICENSE",
     "detailsUrl": "http://spdx.org/licenses/Unlicense.json",
-    "regexp": "The Unlicense",
+    "regexp": ".*[Uu]nlicense.*",
     "isOsiApproved": false,
     "seeAlso": [
       "http://unlicense.org/"
@@ -5207,7 +5207,7 @@
     "isFsfLibre": true,
     "licenseId": "WTFPL",
     "detailsUrl": "http://spdx.org/licenses/WTFPL.json",
-    "regexp": "Do What The F.ck You Want To Public License",
+    "regexp": ".*(Do What The F.ck You Want To Public License|WTFPL|Public Domain)",
     "isOsiApproved": false,
     "seeAlso": [
       "http://sam.zoy.org/wtfpl/COPYING"
