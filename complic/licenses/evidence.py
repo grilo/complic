@@ -25,25 +25,6 @@ class Report(object):
             self.dependencies[identifier] = set()
         self.dependencies[identifier].add(name)
 
-    @property
-    def report_raw(self):
-
-        report = {
-            'licenses': copy.deepcopy(self.licenses),
-            'dependencies': {},
-            'compatibility': {},
-        }
-
-        for dep, licenses in self.dependencies.items():
-            report['dependencies'][dep] = list(licenses)
-
-        lics = self.licenses.keys()
-        for checker in self.compat_checkers:
-            name = checker.__class__.__name__
-            report['compatibility'][name] = checker.check(lics)
-
-        return report
-
     def get_license_deps(self, lic):
         deps = set()
         for dep, licenses in self.dependencies.items():
@@ -70,7 +51,6 @@ class Report(object):
 
                 problems.append(problem)
 
-
         for lic, known in self.licenses.items():
             if not known:
                 deps = self.get_license_deps(lic)
@@ -85,8 +65,26 @@ class Report(object):
 
         return problems
 
-    def to_json(self):
-        return json.dumps(self.report_raw)
+    @property
+    def report_raw(self):
+
+        report = {
+            'date': datetime.datetime.now().strftime('%d %b %Y %H:%M'),
+            'licenses': copy.deepcopy(self.licenses),
+            'dependencies': {},
+            'compatibility': {},
+        }
+
+        for dep, licenses in self.dependencies.items():
+            report['dependencies'][dep] = list(licenses)
+
+        lics = self.licenses.keys()
+        for checker in self.compat_checkers:
+            name = checker.__class__.__name__
+            report['compatibility'][name] = checker.check(lics)
+
+        return report
+
 
     def to_text(self):
 
@@ -110,7 +108,12 @@ class Report(object):
         msg += " of project (%s), finding" % (self.name)
         msg += " %i unique dependencies," % (dep_count)
         msg += " %i licenses and" % (lic_count)
-        msg += " %i problems.\n\bProblems:\n" % (len(probs))
-        msg += ' - ' + '\n - '.join(prob_list)
+        msg += " %i problems." % (len(probs))
+        if len(probs):
+            msg += "\n\bProblems:\n"
+            msg += ' - ' + '\n - '.join(prob_list)
 
         return msg
+
+    def to_json(self):
+        return json.dumps(self.report_raw)

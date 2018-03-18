@@ -109,9 +109,9 @@ def main(): # pragma: nocover
 
     logging.info("Writing complic report to: %s", report_path)
     with open(report_path, 'w') as report_file:
-        report_file.write(json.dumps(report))
+        report_file.write(report.to_json())
 
-    logging.info(report.to_string())
+    logging.info(report.to_text())
 
 
 if __name__ == '__main__': # pragma: nocover
