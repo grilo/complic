@@ -26,11 +26,12 @@ class Scanner(base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
-        if distutils.spawn.find_executable('npm'):
-            self.register_handler(re.compile(r'.*/package.json$'),
-                                  Scanner.handle_pkgjson)
-        else:
+        if not distutils.spawn.find_executable('npm'):
             logging.error("Unable to find 'npm' executable in PATH.")
+            return
+
+        self.register_handler(re.compile(r'.*/package.json$'),
+                              Scanner.handle_pkgjson)
 
 
     @staticmethod

@@ -22,12 +22,11 @@ class Scanner(base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
-        if distutils.spawn.find_executable('pod'):
-            self.register_handler(re.compile(r'.*/Podfile.lock$'),
-                                  Scanner.handle_podfile)
-        else:
+        if not distutils.spawn.find_executable('pod'):
             logging.error("Unable to find 'pod' executable in PATH.")
 
+        self.register_handler(re.compile(r'.*/Podfile.lock$'),
+                              Scanner.handle_podfile)
 
     @staticmethod
     def get_podspec(podname):

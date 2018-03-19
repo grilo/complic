@@ -36,12 +36,12 @@ class Scanner(base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
-        if distutils.spawn.find_executable('pip'):
-            self.register_handler(re.compile(r'.*/setup.py$'),
-                                  Scanner.handle_setuppy)
-        else:
+        if not distutils.spawn.find_executable('pip'):
             logging.error("Unable to find 'pip' executable in PATH.")
+            return
 
+        self.register_handler(re.compile(r'.*/setup.py$'),
+                              Scanner.handle_setuppy)
 
     @staticmethod
     def parse_metadata(metadata):

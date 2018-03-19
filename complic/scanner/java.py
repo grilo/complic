@@ -24,11 +24,12 @@ class Scanner(base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
-        if distutils.spawn.find_executable('mvn'):
-            self.register_handler(re.compile(r'.*/pom.xml$'),
-                                  Scanner.handle_pom)
-        else:
+        if not distutils.spawn.find_executable('mvn'):
             logging.error("Unable to find 'mvn' executable in PATH.")
+            return
+
+        self.register_handler(re.compile(r'.*/pom.xml$'),
+                              Scanner.handle_pom)
 
     @staticmethod
     def parse_thirdparty(thirdparty):
@@ -69,10 +70,16 @@ class Scanner(base.Scanner):
 
         logging.debug("Matched pom handler: %s", file_path)
 
+        print_error = True
+        target_dir = os.path.join(os.path.dirname(file_path), 'target')
+        if not os.path.isdir(target_dir):
+            print_error = False
+            logging.warning("Unable to find target/, results will be unreliable.")
+
         command = "mvn org.codehaus.mojo:license-maven-plugin:1.13"
         command += ":add-third-party -q -B -f %s" % (file_path)
         logging.info("Running license-mvn-plugin on: %s", file_path)
-        return_code, _, _ = complic.utils.shell.cmd(command)
+        return_code, _, _ = complic.utils.shell.cmd(command, print_error=print_error)
         if return_code != 0:
             return []
 
