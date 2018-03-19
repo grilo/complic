@@ -108,9 +108,9 @@ class Report(object):
         msg += " of project (%s), finding" % (self.name)
         msg += " %i unique dependencies," % (dep_count)
         msg += " %i licenses and" % (lic_count)
-        msg += " %i problems." % (len(probs))
+        msg += " %i problem(s)." % (len(probs))
         if len(probs):
-            msg += "\n\bProblems:\n"
+            msg += "\n\bProblem(s):\n"
             msg += ' - ' + '\n - '.join(prob_list)
 
         return msg
