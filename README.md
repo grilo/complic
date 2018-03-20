@@ -15,7 +15,8 @@ Supported package managers:
   * cocoapods
 
 Supported backends:
-  * Artifactory (I believe only the 'pro' version  comes with license control).
+  * ~~Artifactory (I believe only the 'pro' version  comes with license control).~~
+Backend support was disabled, everything is now builtin.
 
 # Usage
 ```
