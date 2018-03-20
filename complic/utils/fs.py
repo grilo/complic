@@ -25,17 +25,28 @@ class Find(object):
         """Store the results in object attributes, ignore .git files."""
         logging.debug("Retrieving file list from: %s", self.root)
         for root, dirs, files in os.walk(self.root):
-            if r'/.git' in root:
+            if r'/.git' in root: # pragma: nocover
                 continue
             for filename in files:
                 self._files.append(os.path.join(root, filename))
-            for dirname in dirs:
-                self._directories.append(os.path.join(root, dirname))
 
     @property
     def files(self):
         return self._files
 
-    @property
-    def dirs(self):
-        return self._directories
+
+class chdir(object):
+
+    def __init__(self, new_dir):
+        self.old_dir = os.getcwd()
+        self.new_dir = new_dir
+
+    def __enter__(self):
+        logging.debug("Changing directory to: %s", self.new_dir)
+        os.chdir(self.new_dir)
+        return self.new_dir
+
+    def __exit__(self, *args):
+        logging.debug("Changing directory to: %s", self.old_dir)
+        os.chdir(self.old_dir)
+        return self.old_dir

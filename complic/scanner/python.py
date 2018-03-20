@@ -6,121 +6,24 @@ This looks more complex than it really is. Python package management
 is a mess and this module reflects that. Tons of string parsing due to
 "plaintext" formats being used everywhere.
 
-What is wrong with all of XML, JSON and YAML? Why have something different?
+Why not something reasonably structured? Even XML is better than this.
+
+Python: there should be one obvious way to do it... except packaging.
 """
 
 import logging
 import re
 import os
-import zipfile
-import tarfile
-import shlex
-import subprocess
-from pip._vendor import pkg_resources # pylint: disable=no-name-in-module
-import setuptools.sandbox
+import sys
+import distutils.spawn
+import setuptools
 
-import complic.scanner.base
-import complic.utils.fs
+from complic.utils import fs, shell
+
+from . import base
 
 
-class Metadata(object):
-    """Represents a generic python package."""
-
-    @staticmethod
-    def from_archive(path):
-        """Support for both eggs and wheels."""
-        if path.endswith('.tar.gz'):
-            return Metadata.from_egg(path)
-        elif path.endswith('.whl'):
-            return Metadata.from_wheel(path)
-
-    @staticmethod
-    def from_wheel(wheel_path):
-        """Extract all the metadata from a wheel archive.
-
-        Returns a Metadata."""
-        archive = zipfile.ZipFile(wheel_path)
-        meta, reqs = '', ''
-        for path in archive.namelist():
-            if path.endswith('dist-info/METADATA'):
-                meta = archive.open(path).read()
-            elif path.endswith('dist-info/requires.txt'):
-                reqs = archive.open(path).read()
-        return Metadata(meta, reqs)
-
-    @staticmethod
-    def from_egg(egg_path):
-        """Extract all the metadata from an egg archive.
-
-        Returns a Metadata."""
-        archive = tarfile.open(egg_path)
-        meta, reqs = '', ''
-        for path in archive.getnames():
-            # Some really old packages might not even have egg-info/META
-            if path.endswith('PKG-INFO'):
-                meta = archive.extractfile(path).read()
-            elif path.endswith('requires.txt'):
-                reqs = archive.extractfile(path).read()
-        return Metadata(meta, reqs)
-
-    @staticmethod
-    def from_setuppy(setup_path):
-        """Generate a wheel binary distribution from a setup.py.
-
-        Returns a Metadata."""
-
-        log_level = logging.getLogger().level
-        logging.getLogger().setLevel(50)
-        try:
-            setuptools.sandbox.run_setup(setup_path, ['-q', 'bdist_wheel'])
-        except:
-            raise IOError("Unable to correctly parse: %s" % (setup_path))
-        finally:
-            logging.getLogger().setLevel(log_level)
-        basedir = os.path.join(os.path.dirname(setup_path), 'dist')
-        regex = re.compile(basedir + r'.*\.whl')
-        for path in complic.utils.fs.Find(basedir).files:
-            if regex.match(path):
-                return Metadata.from_wheel(path)
-
-    def __init__(self, meta, requires=''):
-        """Simplest way of parsing the metadata.
-
-        The existing functions in wheel, pip and whatever just make the code
-        much bigger due to all the different use cases they throw at us.
-        """
-        if not meta:
-            raise AttributeError
-        info = {}
-        regex_name = re.compile(r'^Name: (.*).*$', flags=re.MULTILINE)
-        regex_ver = re.compile(r'^Version: (.*).*$', flags=re.MULTILINE)
-        regex_lic = re.compile(r'^License: (.*)$', flags=re.MULTILINE)
-        regex_req = re.compile(r'^Requires.*: ([A-Za-z0-9_\-\.]+).*$',
-                               flags=re.MULTILINE)
-        info['name'] = regex_name.search(meta).group(1)
-        info['version'] = regex_ver.search(meta).group(1)
-        info['license'] = regex_lic.search(meta).group(1)
-        info['identifier'] = 'py:' + info['name'] + ':' + info['version']
-
-        info['requirements'] = []
-        for req in regex_req.findall(meta):
-            info['requirements'].append(pkg_resources.Requirement.parse(req))
-        for req in requires.splitlines():
-            if req and not req.startswith('['):
-                info['requirements'].append(pkg_resources.Requirement.parse(req))
-        self.info = info
-
-    def __getattr__(self, key):
-        return self.info[key]
-
-    def __getitem__(self, key):
-        return self.info[key]
-
-    def to_dict(self):
-        return self.info
-
-
-class Scanner(complic.scanner.base.Scanner):
+class Scanner(base.Scanner):
     """Look for setup.py files.
 
     Generate pkg-info and start downloading all the dependencies
@@ -133,81 +36,69 @@ class Scanner(complic.scanner.base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
+        if not distutils.spawn.find_executable('pip'):
+            logging.error("Unable to find 'pip' executable in PATH.")
+            return
+
         self.register_handler(re.compile(r'.*/setup.py$'),
-                              self.handle_setuppy)
+                              Scanner.handle_setuppy)
 
     @staticmethod
-    def __download(requirement):
-        """Download a package if not already present."""
+    def parse_metadata(metadata):
+        """Parses either PKG-INFO or METADATA python files."""
+        regex_name = re.compile(r'^\s*Name: (.*).*$', flags=re.MULTILINE)
+        regex_ver = re.compile(r'^\s*Version: (.*).*$', flags=re.MULTILINE)
+        regex_lic = re.compile(r'^\s*License: (.*)$', flags=re.MULTILINE)
+        name = regex_name.search(metadata).group(1)
+        version = regex_ver.search(metadata).group(1)
+        lic = regex_lic.search(metadata).group(1)
 
-        cache_dir = os.path.join(os.environ.get("HOME", os.getcwd()),
-                                 '.complic', 'scanner', 'python')
+        return ':'.join(['python', name, version]), lic
 
-        def find_cache(name):
-            """Very basic caching mechanism."""
-            safereq = name.replace('-', '.')
-            regex = re.compile(cache_dir + '.' + safereq + r'\-.*(\.tar\.gz|\.whl)', re.IGNORECASE)
-            for path in complic.utils.fs.Find(cache_dir).files:
-                if regex.match(path):
-                    return path
+    @staticmethod
+    def get_extra_requirements(setup_py):
+        """Parse/execute the setup.py file looking for 'extra_requirements'.
 
-        cache = find_cache(requirement.name)
-        if not cache:
-            logging.debug("Downloading package: %s", requirement.name)
-            # Running pip with -q messes with our logs
-            # See: https://stackoverflow.com/questions/38754432
-            log_level = logging.getLogger().level
-            cmd = "pip -q download --no-deps -d " + cache_dir + " " + requirement.name
-            process = subprocess.Popen(shlex.split(cmd),
-                                       shell=False,
-                                       stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE)
-            process.wait()
-            logging.getLogger().setLevel(log_level)
-            cache = find_cache(requirement.name)
-            if not cache:
-                raise IOError
-        return cache
+        Since the setup.py file is a python script, it can contain anything,
+        beyond what a few regexes could ever hope to achieve. As such, we
+        execute the file and obtain the final extras_require.
 
-    def build_tree(self, pkg, cyclic_path):
-        """Generate a dependency tree.
+        The extras_require is then used to run a full "pip install" with
+        all optional dependencies."""
+        def mock_setup(**kwargs):
+            mock_setup.extras = kwargs.get('extras_require', {}).keys()
+        setuptools.setup = mock_setup
+        setup_py_dir = os.path.dirname(setup_py)
+        sys.path = [setup_py_dir] + sys.path
+        with fs.chdir(setup_py_dir):
+            import setup # This triggers the execution of mock_setup
+            sys.path = sys.path[1:] # Remove the taint from our environment
+            return mock_setup.__dict__.get('extras', [])
 
-        Recursively identify and download the requirements. We do this to
-        have access to the License fields from each package's metadata.
-        """
-        dependencies = {}
-        cyclic_path.append(pkg['name'])
-        for req in pkg['requirements']:
-            if req.name in cyclic_path:
-                continue
-            try:
-                meta = Metadata.from_archive(Scanner.__download(req))
-                dependencies[meta] = self.build_tree(meta, cyclic_path)
-            except IOError:
-                logging.debug("Unable to download: %s", req.name)
-            except AttributeError:
-                logging.debug("Unable to parse metadata: %s", req.name)
-            finally:
-                cyclic_path.append(req.name)
-        return dependencies
+    @staticmethod
+    def pip_install(setup_py, extras=None):
+        """Runs a pip install, with extra requirements if provided.
 
-    def flatten_tree(self, tree):
-        """
-            Transform:
-                'hello': {
-                    'world': {},
-                }
-            Into:
-                ['hello', 'world']
-        """
-        values = set()
-        for trunk, leaves in tree.items():
-            values.add(trunk)
-            for leaf in self.flatten_tree(leaves):
-                values.add(leaf)
-        return values
+        Returns (bool) depending on the exit code."""
 
-    def handle_setuppy(self, file_path):
+        with fs.chdir(os.path.dirname(setup_py)) as new_dir:
+            build_dir = os.path.join(new_dir, 'builddir')
+            os.makedirs(build_dir)
+            command = "PYTHONUSERBASE='%s' " % (build_dir)
+            command += "pip install --ignore-installed ."
+            if extras:
+                command += "[%s]" % (','.join(extras))
+
+            logging.info("Running pip install on %s", new_dir)
+            return_code, _, _ = shell.cmd(command, print_error=True)
+
+            if return_code != 0:
+                logging.error("Make sure ~/.pip/pip.conf is correctly configured.")
+                return False
+        return True
+
+    @staticmethod
+    def handle_setuppy(file_path):
         """Run the setup script and parse its requirements (dependencies).
 
         We build our own dependency tree and then flatten it before returning.
@@ -219,20 +110,23 @@ class Scanner(complic.scanner.base.Scanner):
         logging.debug("Matched setup.py handler: %s", file_path)
 
         file_path = os.path.abspath(file_path)
+        extra_requires = Scanner.get_extra_requirements(file_path)
 
-        try:
-            pkg = Metadata.from_setuppy(file_path)
-        except IOError:
+        if not Scanner.pip_install(file_path, extra_requires):
+            logging.error("Unable to run pip install for: %s", file_path)
             return []
 
-        dependency_tree = {}
-        dependency_tree[pkg] = self.build_tree(pkg, [])
+        deps = []
+        for path in fs.Find(os.path.dirname(file_path)).files:
+            if not os.path.basename(path) in ['PKG-INFO', 'METADATA']:
+                continue
 
-        dependencies = {}
-        for leaf in self.flatten_tree(dependency_tree):
-            dep = complic.scanner.base.Dependency(**leaf.to_dict())
-            dep.licenses = set()
-            dep.licenses.add(leaf.license)
-            dependencies[dep.identifier] = dep
 
-        return dependencies.values()
+            metadata = open(path, 'r').read()
+
+            identifier, lic = Scanner.parse_metadata(metadata)
+            dependency = base.Dependency(identifier, path)
+            dependency.licenses.add(lic)
+            deps.append(dependency)
+
+        return deps

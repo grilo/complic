@@ -6,11 +6,12 @@
 import logging
 import json
 import re
+import distutils.spawn
 
-import complic.scanner.base
+from . import base
 
 
-class Scanner(complic.scanner.base.Scanner):
+class Scanner(base.Scanner):
     """Scan all package.json files.
 
     The solution is not very complete. Unless the project has been built
@@ -25,8 +26,13 @@ class Scanner(complic.scanner.base.Scanner):
     def __init__(self):
         super(Scanner, self).__init__()
 
+        if not distutils.spawn.find_executable('npm'):
+            logging.error("Unable to find 'npm' executable in PATH.")
+            return
+
         self.register_handler(re.compile(r'.*/package.json$'),
                               Scanner.handle_pkgjson)
+
 
     @staticmethod
     def handle_pkgjson(file_path):
@@ -42,13 +48,12 @@ class Scanner(complic.scanner.base.Scanner):
 
         name = pkgjson.get('name', '<none>')
         version = pkgjson.get('version', '<none>')
-        licenses = set()
-        for lic in Scanner.get_licenses(pkgjson):
-            licenses.add(lic)
-        pkgjson['licenses'] = set(licenses)
 
-        dependency = complic.scanner.base.Dependency(**pkgjson)
-        dependency.identifier = 'js:' + name + ':' + version
+        identifier = 'js:' + name + ':' + version
+        dependency = base.Dependency(identifier, file_path)
+
+        for lic in Scanner.get_licenses(pkgjson):
+            dependency.licenses.add(lic)
 
         return [dependency]
 

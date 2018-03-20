@@ -17,8 +17,6 @@ class Scanner(object):
 
     def __init__(self):
         self.handlers = {}
-        self.register_handler(re.compile('ONLY_EXAMPLE'),
-                              self.example_handler)
 
     def register_handler(self, regex, callback):
         """Handler is a simple regex-based callback.
@@ -26,10 +24,6 @@ class Scanner(object):
         If the file matches the regex, the callback is invoked.
         """
         self.handlers[regex] = callback
-
-    def example_handler(self, file_path):
-        """Placeholder."""
-        pass
 
     def scan(self, filelist):
         """This should be left alone.
@@ -59,38 +53,22 @@ class Dependency(object):
     really being used.
     """
 
-    def __init__(self, **kwargs):
-        self._licenses = set()
-        for key, value in kwargs.items():
-            if not key in self.__dict__:
-                setattr(self, '_' + key, value)
+    def __init__(self, identifier, path):
+        # Identifier for this dependency. The same dependency may show up in
+        # multiple places in the same project
+        self.identifier = identifier
+        # The file we extracted this dependency information from.
+        self.path = path
 
-    @property
-    def identifier(self):
-        return self._identifier
-
-    @identifier.setter
-    def identifier(self, value):
-        self._identifier = value
-
-    @property
-    def licenses(self):
-        """A set of licenses.
-
+        """
         Some modules might have more than one license. It also represents the
         fact that the same module might be caught twice (perhaps with different
         versions) and this ensures no information is lost.
         """
-        return self._licenses
+        self.licenses = set()
 
-    @licenses.setter
-    def licenses(self, value):
-        self._licenses = value
-
-    def __getattr__(self, key):
-        return self.__dict__['_' + key]
-
-    def __repr__(self):
+    def __repr__(self): # pragma: nocover
+        """This is only used for debugging."""
         lics = set('Unknown')
         if self.licenses:
             lics = self.licenses
