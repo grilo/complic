@@ -12,6 +12,7 @@ Supported package managers:
   * mvn
   * npm
   * pypi
+  * cocoapods
 
 Supported backends:
   * Artifactory (I believe only the 'pro' version  comes with license control).
