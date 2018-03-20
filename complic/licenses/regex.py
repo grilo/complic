@@ -5,7 +5,7 @@ import json
 import re
 import logging
 
-import complic.licenses.exceptions
+from complic.licenses import exceptions
 
 
 class Normalizer(object):
@@ -55,4 +55,4 @@ class Normalizer(object):
             if props['regexp'].match(string):
                 logging.debug("SPDX (%s) found for: %s", lic, string)
                 return lic
-        raise complic.licenses.exceptions.UnknownLicenseError
+        raise exceptions.UnknownLicenseError

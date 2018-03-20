@@ -14,6 +14,8 @@ import complic.utils.fs
 
 import complic.scanner
 
+import complic.utils.config
+
 import complic.licenses.exceptions
 import complic.licenses.regex
 import complic.licenses.compat
@@ -57,12 +59,18 @@ def engine(directory, name):
     #   }
 
 
+    config = complic.utils.config.Manager()
     filelist = complic.utils.fs.Find(directory).files
     report = complic.licenses.evidence.Report(name,
                                               complic.licenses.compat.get())
     dependencies = get_dependencies(complic.scanner.get(), filelist)
 
     for dependency in dependencies:
+        try:
+            x = dependency.identifier.replace(':', '_')
+            dependency.licenses = set(config['licenses'][x].split(','))
+        except KeyError:
+            pass
         if not dependency.licenses:
             report.add_license('<no license>', dependency.identifier, False)
             continue
