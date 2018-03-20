@@ -33,5 +33,6 @@ setup(
             'complic=complic.cli:main',
         ],
     },
-    tests_require=['pylint', 'pytest', 'pytest-runner', 'pytest-cov', 'pytest-mock'],
+    setup_requires=['pytest-runner'],
+    tests_require=['pylint', 'pytest', 'pytest-cov', 'pytest-mock'],
 )

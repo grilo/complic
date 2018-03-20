@@ -20,21 +20,71 @@ Backend support was disabled, everything is now builtin.
 
 # Usage
 ```
-# Clone
-git clone https://github.com/grilo/complic.git
-
-# Install locally
-cd complic
-pip install .
+# Install it
+pip install --user git+https://github.com/grilo/complic
 
 # Run it
 complic -d /some/project/dir
 ```
 
-`complic` returns a non-zero exit status if any non-approved licenses are found.
+A `complic-report.json` file will be generated in `/some/project/dir`. This
+file contains information about:
+  * Which licenses are being used.
+  * Which of those licenses is known to complic.
+  * What license is each dependency using.
 
-# Notes
-Alternatives:
+Any "problems" found means potential non-complicance issues (usually unknown
+licenses).
+
+`complic` returns a non-zero exit status if the execution itself presents
+problems. Compliance issues do **not** cause errors.
+
+# Configuration
+During runtime, `complic` will look for a ~/.complic/config.json file.
+
+The schema for this file is described with some detail in the source code
+(look for config.py), but the gist is:
+```json
+{
+  "dependencies": {
+    {
+      // Forces "some:dependency" to always be interpreted
+      // as having "some_license", in spite of whatever the
+      // package manager returns. Regexes are supported.
+      "some:dependency": "some_license"
+    }
+  }
+  "forbidden": [
+    "AGPL-V1" // Whenever this license is found, it's reported as a "problem"
+  ]
+}
+```
+
+# Rationale
+
+The actual risk of being accidentally non-compliant is often negligible. It
+takes some intentional effort to take someone else's source code and modify
+it voluntarily and **also** having it marked as a dependency.
+
+In addition, compliance vs non-compliance discussion often depends on the
+service model. Is the app being distributed within the same legal entity?
+Is it a web service? Even if you infringe on a license, you can still get
+away with it legally if you choose the correct service model.
+
+In regulated environments, some degree of control over what licenses your
+dependencies are using is mandatory in case you have issues down the line.
+This will help you provide evidence of best-effort measures taken to
+minimize any putative infringement.
+
+# Roadmap
+
+  * Add support for more package managers.
+  * Python 3+.
+
+Contributions very welcome.
+
+# Prior art
+
   * https://github.com/benbalter/licensee
   * https://github.com/nexB/scancode-toolkit
   * https://github.com/fossology/fossology (nomos)
@@ -48,6 +98,6 @@ project are supported, though) for licensing information regarding all of its
 dependencies.
 
 The end result is a much faster execution time (a couple of minutes for
-medium-sized projects) with a very high degree of reliability. This is only
-only possible if the maintainers of your project's dependencies are careful
-enough to populate their package's metadata with such information.
+large projects) with a decent degree of trustability. This is only possible
+if the maintainers of your project's dependencies are careful enough to
+populate their package's metadata with such information.
