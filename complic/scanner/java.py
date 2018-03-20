@@ -76,7 +76,6 @@ class Scanner(base.Scanner):
             print_error = False
             logging.warning("Unable to find target/, results will be unreliable.")
 
-        """
         command = "mvn org.codehaus.mojo:license-maven-plugin"
         command += ":add-third-party -q -B -f %s" % (file_path)
         command += " -Dlicense.excludedScopes=test"
@@ -84,7 +83,6 @@ class Scanner(base.Scanner):
         return_code, _, _ = complic.utils.shell.cmd(command, print_error=print_error)
         if return_code != 0:
             return []
-        """
 
         deps = []
         for path in complic.utils.fs.Find(os.path.dirname(file_path)).files:
