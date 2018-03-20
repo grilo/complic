@@ -3,6 +3,7 @@
 from complic.utils import fs
 
 from complic import cli
+from complic.utils import config
 from complic.licenses import evidence
 
 
@@ -22,8 +23,13 @@ def test_get_dependencies(mocker):
 
 def test_engine(mocker):
     mocker.patch.object(fs, 'Find')
-
     mocker.patch.object(cli, 'get_dependencies')
+    mocker.patch.object(config, 'Manager')
+    config.Manager.return_value = {
+        'dependencies': {
+            'npm:package:1.1.1': 'GPL-V2'
+        }
+    }
 
 
     dep1 = mocker.Mock()
@@ -42,8 +48,12 @@ def test_engine(mocker):
     dep4.identifier = 'npm:package:1.1.1'
     dep4.licenses = set([])
 
+    dep5 = mocker.Mock()
+    dep5.identifier = 'npm:package:2.1.1'
+    dep5.licenses = set([])
+
     cli.get_dependencies.return_value = [
-        dep1, dep2, dep3, dep4
+        dep1, dep2, dep3, dep4, dep5
     ]
 
     report = cli.engine('/some/dir', 'project_name')

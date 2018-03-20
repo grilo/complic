@@ -8,7 +8,7 @@ import argparse
 import os
 import sys
 import json
-import datetime
+import re
 
 import complic.utils.fs
 
@@ -66,11 +66,11 @@ def engine(directory, name):
     dependencies = get_dependencies(complic.scanner.get(), filelist)
 
     for dependency in dependencies:
-        try:
-            x = dependency.identifier.replace(':', '_')
-            dependency.licenses = set(config['licenses'][x].split(','))
-        except KeyError:
-            pass
+        for dep in config['dependencies']:
+            if not re.match(dep, dependency.identifier):
+                continue
+            logging.debug("Dependency in configuration: %s", dependency.identifier)
+            dependency.licenses = set(config['dependencies'][dep].split(','))
         if not dependency.licenses:
             report.add_license('<no license>', dependency.identifier, False)
             continue
