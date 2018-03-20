@@ -48,17 +48,30 @@ The schema for this file is described with some detail in the source code
 {
   "dependencies": {
     {
-      // Forces "some:dependency" to always be interpreted
-      // as having "some_license", in spite of whatever the
-      // package manager returns. Regexes are supported.
       "some:dependency": "some_license"
     }
   }
   "forbidden": [
-    "AGPL-V1" // Whenever this license is found, it's reported as a "problem"
+    "AGPL-V1"
   ]
 }
 ```
+
+## Dependencies
+
+Forces "some:dependency" to always be interpreted as having "some_license",
+in spite of whatever the package manager returns. Regexes are supported for
+the "some:dependency" part, allowing you to easily exclude packages from your
+org. Example: `java:my.org.*: WTFPL`
+
+## Forbidden
+Whenever this license is found, it's reported as a "problem". Although the
+concept of "license virality" has been debunked, it's still useful if you
+the paranoid kind. Simply forbid them and have the dependencies using
+that specific license be reported as "problems".
+
+The actual license should match complic's internal inventory
+(see: `complic/licenses/inventory.json`).
 
 # Rationale
 
