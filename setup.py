@@ -35,4 +35,7 @@ setup(
     },
     setup_requires=['pytest-runner'],
     tests_require=['pylint', 'pytest', 'pytest-cov', 'pytest-mock'],
+    package_data = {
+        '': ['*.json'],
+    },    
 )
